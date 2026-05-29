@@ -1,1 +1,2 @@
-- [OpenAI image edit (gpt-image-2)](openai-image-edit.md) — gpt-image-2 rejects `input_fidelity` (SDK types lie); restart api-server after edits; refs downscaled via IKEA imwidth.
+- [OpenAI image edit (gpt-image-2)](openai-image-edit.md) — gpt-image-2 rejects `input_fidelity` (SDK types lie); restart api-server after edits; refs downscaled via IKEA imwidth; quality:high trips ~120s proxy timeout.
+- [IKEA catalog classification](ikea-catalog.md) — ingest role/group is coarse; fix miscategorizations in `reclassifyProduct()` (read-time, ikeaCatalog.ts), not by re-ingesting.

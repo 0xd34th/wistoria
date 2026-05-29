@@ -251,6 +251,11 @@ function buildPrompt(
       `The ${referenceProducts.length} image(s) AFTER the room photo are reference photos of these specific IKEA products, in this exact order: ${refNames}. Reproduce each one FAITHFULLY: match its exact shape, silhouette, proportions, frame, leg style, cushion form, materials, texture, and color. Do NOT invent a generic lookalike or alter the design — the rendered furniture must clearly be the same product shown in its reference photo, only re-lit and positioned to fit the room.`,
     );
   }
+  if (products.some((p) => p.role === "rug")) {
+    lines.push(
+      "RUG HANDLING: First completely REMOVE any rug or carpet already on the floor in the original photo. Then lay the new rug flat on the floor and reproduce its OWN true outline exactly as shown in its reference photo — round, oval, runner, animal-hide, or any irregular shape. Do NOT force the rug into a rectangle or square, and do NOT copy the shape, size, or position of the rug that was previously in the room. Match the reference rug's pattern, border, and proportions.",
+    );
+  }
   lines.push(
     "You may update wall color, flooring finish, textiles, and lighting mood to suit the style, but the structural layout and viewpoint must remain exactly the same as the original.",
     "Photorealistic interior photography with accurate proportions and natural lighting. Do not add any text, watermarks, labels, logos, or people.",

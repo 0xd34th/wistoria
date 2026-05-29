@@ -168,6 +168,27 @@ const ROOM_ROLE_PRIORITY: Record<string, string[]> = {
 
 const MAX_PRODUCTS_PER_ROOM = 5;
 
+/**
+ * Corrects coarse role/group classifications coming from the ingested seed.
+ *
+ * The ingestion script buckets every "bench" as Seating, but shoe-storage,
+ * storage, and toy-storage benches are really storage/hallway furniture and
+ * should not surface as seating swap candidates. We detect them from the
+ * human-readable `category` (e.g. "Bench with shoe storage", "Storage bench")
+ * and move them to the existing Storage group. Applied at read time so the fix
+ * lands on existing DB rows without re-ingesting the catalog.
+ */
+function reclassifyProduct(p: Product): Product {
+  if (p.role === "bench" && /storage|shoe/i.test(p.category)) {
+    return { ...p, role: "storage-bench", group: "Storage" };
+  }
+  return p;
+}
+
+function reclassifyAll(products: Product[]): Product[] {
+  return products.map(reclassifyProduct);
+}
+
 /** Public style list (without internal prompt hints). */
 export function listStyles(): Omit<StylePreset, "promptHint">[] {
   return STYLE_DATA.map(({ promptHint: _promptHint, ...rest }) => rest);
@@ -227,7 +248,11 @@ export async function seedIkeaProducts(): Promise<void> {
 export async function getProductsForStyle(_styleId?: string): Promise<Product[]> {
   // Ordered by id so the catalog (and any first-match selection over it) is
   // deterministic across requests and environments.
-  return db.select().from(ikeaProductsTable).orderBy(ikeaProductsTable.id);
+  const rows = await db
+    .select()
+    .from(ikeaProductsTable)
+    .orderBy(ikeaProductsTable.id);
+  return reclassifyAll(rows);
 }
 
 /**
@@ -242,7 +267,7 @@ export async function getProductsForStyle(_styleId?: string): Promise<Product[]>
 export async function getEligibleProductsForRoom(
   roomTypeId: string,
 ): Promise<Product[]> {
-  return db
+  const rows = await db
     .select()
     .from(ikeaProductsTable)
     .where(
@@ -252,6 +277,7 @@ export async function getEligibleProductsForRoom(
       ),
     )
     .orderBy(ikeaProductsTable.id);
+  return reclassifyAll(rows);
 }
 
 /**
@@ -265,7 +291,7 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
     .select()
     .from(ikeaProductsTable)
     .where(inArray(ikeaProductsTable.id, ids));
-  const byId = new Map(rows.map((p) => [p.id, p]));
+  const byId = new Map(reclassifyAll(rows).map((p) => [p.id, p]));
   const result: Product[] = [];
   for (const id of ids) {
     const match = byId.get(id);
