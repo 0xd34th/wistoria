@@ -23,11 +23,11 @@ import {
 const { width } = Dimensions.get("window");
 
 const TAG_POSITIONS = [
-  { top: "11%", left: "5%" },
-  { top: "21%", right: "5%" },
-  { top: "46%", left: "32%" },
-  { bottom: "30%", left: "5%" },
-  { bottom: "18%", right: "5%" },
+  { top: "10%", left: "4%" },
+  { top: "20%", right: "4%" },
+  { top: "40%", right: "4%" },
+  { bottom: "28%", left: "4%" },
+  { bottom: "16%", right: "4%" },
 ] as const;
 
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
@@ -241,7 +241,7 @@ export default function RedesignResultScreen() {
               {redesign.products.slice(0, TAG_POSITIONS.length).map((product, i) => (
                 <Pressable
                   key={product.id}
-                  style={[styles.tag, TAG_POSITIONS[i], { backgroundColor: colors.card, borderRadius: colors.radius }]}
+                  style={[styles.tag, TAG_POSITIONS[i], { backgroundColor: colors.card }]}
                   onPress={() => openBuyLink(product.buyUrl)}
                 >
                   <View style={styles.ikeaBadge}>
@@ -249,9 +249,6 @@ export default function RedesignResultScreen() {
                   </View>
                   <Text style={[styles.tagName, { color: colors.foreground }]} numberOfLines={1}>
                     {product.name}
-                  </Text>
-                  <Text style={[styles.tagMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
-                    {product.category}
                   </Text>
                   <Text style={[styles.tagPrice, { color: colors.foreground }]}>{formatPrice(product.price)}</Text>
                 </Pressable>
@@ -632,43 +629,41 @@ const styles = StyleSheet.create({
   },
   tag: {
     position: "absolute",
-    maxWidth: 165,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: 175,
+    paddingVertical: 5,
+    paddingLeft: 5,
+    paddingRight: 9,
+    borderRadius: 999,
+    gap: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   ikeaBadge: {
-    alignSelf: "flex-start",
     backgroundColor: "#0058A3",
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 3,
-    marginBottom: 6,
   },
   ikeaBadgeText: {
     color: "#FFDB00",
-    fontSize: 10,
+    fontSize: 8,
     fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   tagName: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.3,
-  },
-  tagMeta: {
+    flexShrink: 1,
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    marginTop: 1,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: -0.2,
   },
   tagPrice: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    marginTop: 4,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
   },
   navButton: {
     width: 48,
