@@ -532,6 +532,7 @@ export default function RedesignResultScreen() {
               <FlatList
                 data={filteredAlternatives}
                 keyExtractor={(product) => product.id}
+                style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 16 }}
                 initialNumToRender={8}
@@ -906,6 +907,7 @@ const styles = StyleSheet.create({
   chipScroll: {
     marginBottom: 12,
     flexGrow: 0,
+    flexShrink: 0,
   },
   chipRow: {
     gap: 8,
@@ -923,6 +925,7 @@ const styles = StyleSheet.create({
   subChipScroll: {
     marginBottom: 16,
     flexGrow: 0,
+    flexShrink: 0,
   },
   subChip: {
     borderWidth: 1,
