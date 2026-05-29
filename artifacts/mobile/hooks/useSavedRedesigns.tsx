@@ -7,6 +7,8 @@ export interface SavedRedesign {
   createdAt: number;
   styleId: string;
   styleName: string;
+  roomTypeId: string;
+  roomName: string;
   originalImage: string; // base64
   redesignedImage: string; // base64
   products: Product[];

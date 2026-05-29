@@ -13,6 +13,12 @@ export interface ErrorResponse {
   message: string;
 }
 
+export interface RoomType {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface StylePreset {
   id: string;
   name: string;
@@ -30,7 +36,10 @@ export interface Product {
   color: string;
   price: number;
   currency: string;
-  styleId: string;
+  /** Room type ids this product is eligible for. */
+  roomTypes: string[];
+  /** Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection. */
+  role: string;
   /** Relative URL path to the product image (served by the API). */
   imageUrl: string;
   /** Link to purchase the product on IKEA. */
@@ -41,6 +50,7 @@ export interface RedesignRequest {
   /** Base64-encoded room photo (no data URI prefix). */
   image: string;
   styleId: string;
+  roomTypeId: string;
 }
 
 export interface RedesignResult {
@@ -51,6 +61,6 @@ export interface RedesignResult {
 }
 
 export type ListProductsParams = {
-styleId?: string;
+roomTypeId?: string;
 };
 

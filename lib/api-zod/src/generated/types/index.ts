@@ -12,4 +12,5 @@ export * from './listProductsParams';
 export * from './product';
 export * from './redesignRequest';
 export * from './redesignResult';
+export * from './roomType';
 export * from './stylePreset';

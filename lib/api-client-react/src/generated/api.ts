@@ -26,6 +26,7 @@ import type {
   Product,
   RedesignRequest,
   RedesignResult,
+  RoomType,
   StylePreset
 } from './api.schemas';
 
@@ -197,6 +198,84 @@ export function useListStyles<TData = Awaited<ReturnType<typeof listStyles>>, TE
 
 
 
+export const getListRoomsUrl = () => {
+
+
+
+
+  return `/api/rooms`
+}
+
+/**
+ * Returns the available room types that drive product selection.
+ * @summary List room types
+ */
+export const listRooms = async ( options?: RequestInit): Promise<RoomType[]> => {
+
+  return customFetch<RoomType[]>(getListRoomsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRoomsQueryKey = () => {
+    return [
+    `/api/rooms`
+    ] as const;
+    }
+
+
+export const getListRoomsQueryOptions = <TData = Awaited<ReturnType<typeof listRooms>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRoomsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRooms>>> = ({ signal }) => listRooms({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRoomsQueryResult = NonNullable<Awaited<ReturnType<typeof listRooms>>>
+export type ListRoomsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List room types
+ */
+
+export function useListRooms<TData = Awaited<ReturnType<typeof listRooms>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRoomsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getListProductsUrl = (params?: ListProductsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -213,7 +292,7 @@ export const getListProductsUrl = (params?: ListProductsParams,) => {
 }
 
 /**
- * Returns the curated IKEA products, optionally filtered by style.
+ * Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
  * @summary List shoppable IKEA products
  */
 export const listProducts = async (params?: ListProductsParams, options?: RequestInit): Promise<Product[]> => {

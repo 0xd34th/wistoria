@@ -9,7 +9,12 @@ import Animated, { FadeIn, FadeOut, SlideInUp, FadeInDown, ZoomIn } from "react-
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { getAssetUrl } from "@/lib/utils";
-import { useListStyles, useCreateRedesign, StylePreset } from "@workspace/api-client-react";
+import { useListStyles, useListRooms, useCreateRedesign, StylePreset, RoomType } from "@workspace/api-client-react";
+
+const ROOM_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
+  "living-room": "tv",
+  bedroom: "moon",
+};
 
 export default function CreateScreen() {
   const colors = useColors();
@@ -18,10 +23,12 @@ export default function CreateScreen() {
   const { saveRedesign } = useSavedRedesigns();
 
   const { data: stylesList, isLoading: isLoadingStyles } = useListStyles();
+  const { data: roomsList, isLoading: isLoadingRooms } = useListRooms();
   const { mutateAsync: createRedesign, isPending: isGenerating, error } = useCreateRedesign();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
 
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
@@ -64,16 +71,18 @@ export default function CreateScreen() {
   };
 
   const handleGenerate = async () => {
-    if (!imageBase64 || !selectedStyleId || !stylesList) return;
+    if (!imageBase64 || !selectedStyleId || !selectedRoomTypeId || !stylesList || !roomsList) return;
 
     try {
       const style = stylesList.find((s) => s.id === selectedStyleId);
-      if (!style) return;
+      const room = roomsList.find((r) => r.id === selectedRoomTypeId);
+      if (!style || !room) return;
 
       const result = await createRedesign({
         data: {
           image: imageBase64,
           styleId: selectedStyleId,
+          roomTypeId: selectedRoomTypeId,
         },
       });
 
@@ -84,6 +93,8 @@ export default function CreateScreen() {
         createdAt: Date.now(),
         styleId: style.id,
         styleName: style.name,
+        roomTypeId: room.id,
+        roomName: room.name,
         originalImage: imageBase64,
         redesignedImage: result.redesignedImage,
         products: result.products,
@@ -174,6 +185,42 @@ export default function CreateScreen() {
           )}
         </Animated.View>
 
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Space</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>Tell us the room so we curate the right pieces.</Text>
+
+          {isLoadingRooms ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
+          ) : (
+            <View style={styles.roomsRow}>
+              {roomsList?.map((room: RoomType) => {
+                const isSelected = selectedRoomTypeId === room.id;
+                return (
+                  <Pressable
+                    key={room.id}
+                    style={({ pressed }) => [
+                      styles.roomCard,
+                      { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                      isSelected && { borderColor: colors.primary, borderWidth: 2 },
+                      pressed && { transform: [{ scale: 0.98 }] },
+                    ]}
+                    onPress={() => setSelectedRoomTypeId(room.id)}
+                  >
+                    <View style={[styles.roomIconWrap, { backgroundColor: isSelected ? colors.primary : colors.muted }]}>
+                      <Feather
+                        name={ROOM_ICONS[room.id] ?? "home"}
+                        size={22}
+                        color={isSelected ? colors.primaryForeground : colors.primary}
+                      />
+                    </View>
+                    <Text style={[styles.roomName, { color: colors.foreground }]}>{room.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </Animated.View>
+
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Vision</Text>
           <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>Select a style to direct the curation.</Text>
@@ -229,10 +276,10 @@ export default function CreateScreen() {
           style={({ pressed }) => [
             styles.generateButton,
             { backgroundColor: colors.primary },
-            (!imageUri || !selectedStyleId) && { opacity: 0.4 },
-            pressed && imageUri && selectedStyleId && { transform: [{ scale: 0.98 }] }
+            (!imageUri || !selectedRoomTypeId || !selectedStyleId) && { opacity: 0.4 },
+            pressed && imageUri && selectedRoomTypeId && selectedStyleId && { transform: [{ scale: 0.98 }] }
           ]}
-          disabled={!imageUri || !selectedStyleId || isGenerating}
+          disabled={!imageUri || !selectedRoomTypeId || !selectedStyleId || isGenerating}
           onPress={handleGenerate}
         >
           <Text style={[styles.generateButtonText, { color: colors.primaryForeground }]}>
@@ -335,6 +382,29 @@ const styles = StyleSheet.create({
   },
   repickText: {
     fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  roomsRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  roomCard: {
+    flex: 1,
+    borderWidth: 1,
+    paddingVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  roomIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roomName: {
+    fontSize: 16,
     fontFamily: "Inter_600SemiBold",
   },
   stylesGrid: {

@@ -33,11 +33,23 @@ export const ListStylesResponse = zod.array(ListStylesResponseItem)
 
 
 /**
- * Returns the curated IKEA products, optionally filtered by style.
+ * Returns the available room types that drive product selection.
+ * @summary List room types
+ */
+export const ListRoomsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})
+export const ListRoomsResponse = zod.array(ListRoomsResponseItem)
+
+
+/**
+ * Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
  * @summary List shoppable IKEA products
  */
 export const ListProductsQueryParams = zod.object({
-  "styleId": zod.coerce.string().optional()
+  "roomTypeId": zod.coerce.string().optional()
 })
 
 export const ListProductsResponseItem = zod.object({
@@ -47,7 +59,8 @@ export const ListProductsResponseItem = zod.object({
   "color": zod.string(),
   "price": zod.number(),
   "currency": zod.string(),
-  "styleId": zod.string(),
+  "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
+  "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 })
@@ -60,7 +73,8 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
  */
 export const CreateRedesignBody = zod.object({
   "image": zod.string().describe('Base64-encoded room photo (no data URI prefix).'),
-  "styleId": zod.string()
+  "styleId": zod.string(),
+  "roomTypeId": zod.string()
 })
 
 export const CreateRedesignResponse = zod.object({
@@ -73,7 +87,8 @@ export const CreateRedesignResponse = zod.object({
   "color": zod.string(),
   "price": zod.number(),
   "currency": zod.string(),
-  "styleId": zod.string(),
+  "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
+  "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 }))

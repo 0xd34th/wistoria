@@ -10,4 +10,5 @@ export interface RedesignRequest {
   /** Base64-encoded room photo (no data URI prefix). */
   image: string;
   styleId: string;
+  roomTypeId: string;
 }

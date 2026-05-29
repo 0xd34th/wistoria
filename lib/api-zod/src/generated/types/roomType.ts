@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListProductsParams = {
-roomTypeId?: string;
-};
+export interface RoomType {
+  id: string;
+  name: string;
+  description: string;
+}

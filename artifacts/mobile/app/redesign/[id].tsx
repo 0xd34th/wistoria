@@ -15,6 +15,7 @@ const { width } = Dimensions.get("window");
 const TAG_POSITIONS = [
   { top: "11%", left: "5%" },
   { top: "21%", right: "5%" },
+  { top: "46%", left: "32%" },
   { bottom: "30%", left: "5%" },
   { bottom: "18%", right: "5%" },
 ] as const;
@@ -130,6 +131,7 @@ export default function RedesignResultScreen() {
           <Animated.View entering={FadeInDown.delay(100)}>
             <Text style={[styles.title, { color: colors.foreground }]}>{redesign.styleName} Studio</Text>
             <Text style={[styles.date, { color: colors.mutedForeground }]}>
+              {redesign.roomName ? `${redesign.roomName} · ` : ""}
               {new Date(redesign.createdAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </Text>
           </Animated.View>

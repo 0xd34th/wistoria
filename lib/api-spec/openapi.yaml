@@ -41,14 +41,29 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/StylePreset"
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [redesign]
+      summary: List room types
+      description: Returns the available room types that drive product selection.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomType"
   /products:
     get:
       operationId: listProducts
       tags: [redesign]
       summary: List shoppable IKEA products
-      description: Returns the curated IKEA products, optionally filtered by style.
+      description: Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
       parameters:
-        - name: styleId
+        - name: roomTypeId
           in: query
           required: false
           schema:
@@ -103,6 +118,19 @@ components:
           type: string
       required:
         - message
+    RoomType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - name
+        - description
     StylePreset:
       type: object
       properties:
@@ -141,8 +169,14 @@ components:
           type: number
         currency:
           type: string
-        styleId:
+        roomTypes:
+          type: array
+          items:
+            type: string
+          description: Room type ids this product is eligible for.
+        role:
           type: string
+          description: Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.
         imageUrl:
           type: string
           description: Relative URL path to the product image (served by the API).
@@ -156,7 +190,8 @@ components:
         - color
         - price
         - currency
-        - styleId
+        - roomTypes
+        - role
         - imageUrl
         - buyUrl
     RedesignRequest:
@@ -167,9 +202,12 @@ components:
           description: Base64-encoded room photo (no data URI prefix).
         styleId:
           type: string
+        roomTypeId:
+          type: string
       required:
         - image
         - styleId
+        - roomTypeId
     RedesignResult:
       type: object
       properties:

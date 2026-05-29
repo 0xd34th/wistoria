@@ -13,7 +13,10 @@ export interface Product {
   color: string;
   price: number;
   currency: string;
-  styleId: string;
+  /** Room type ids this product is eligible for. */
+  roomTypes: string[];
+  /** Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection. */
+  role: string;
   /** Relative URL path to the product image (served by the API). */
   imageUrl: string;
   /** Link to purchase the product on IKEA. */

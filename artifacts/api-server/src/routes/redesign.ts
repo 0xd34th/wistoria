@@ -3,10 +3,14 @@ import { Router, type IRouter } from "express";
 import { toFile } from "openai";
 import { openai } from "../lib/openai";
 import {
+  getProductsForRoom,
   getProductsForStyle,
+  getRoom,
   getStyle,
+  listRooms,
   listStyles,
   type Product,
+  type RoomType,
   type StylePreset,
 } from "../data/ikeaCatalog";
 
@@ -16,10 +20,18 @@ router.get("/styles", (_req, res) => {
   res.json(listStyles());
 });
 
+router.get("/rooms", (_req, res) => {
+  res.json(listRooms());
+});
+
 router.get("/products", (req, res) => {
-  const styleId =
-    typeof req.query["styleId"] === "string" ? req.query["styleId"] : undefined;
-  res.json(getProductsForStyle(styleId));
+  const roomTypeId =
+    typeof req.query["roomTypeId"] === "string"
+      ? req.query["roomTypeId"]
+      : undefined;
+  res.json(
+    roomTypeId ? getProductsForRoom(roomTypeId) : getProductsForStyle(),
+  );
 });
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
@@ -68,12 +80,16 @@ function decodeImage(
   return { buffer, mime: detected.mime, ext: detected.ext };
 }
 
-function buildPrompt(style: StylePreset, products: Product[]): string {
+function buildPrompt(
+  style: StylePreset,
+  room: RoomType,
+  products: Product[],
+): string {
   const items = products
     .map((p) => `${p.name} (${p.category}, ${p.color})`)
     .join("; ");
   return [
-    "You are an interior renovation tool. Edit this photograph of a real room.",
+    `You are an interior renovation tool. Edit this photograph of a real ${room.name.toLowerCase()}.`,
     "CRITICAL: Keep the room's layout and architecture IDENTICAL to the original photo. Do not move, add, remove, or resize any walls, windows, doors, ceiling, or built-in structures. Preserve the exact camera angle, perspective, focal length, framing, room dimensions, and proportions. The position of the floor, walls, and openings must match the original precisely.",
     `Renovate the space in a ${style.name} interior style. ${style.promptHint}`,
     `Furnish and decorate the room using ONLY these specific IKEA products, placing each one naturally, realistically, and at a believable scale where it belongs in the scene: ${items}.`,
@@ -83,9 +99,15 @@ function buildPrompt(style: StylePreset, products: Product[]): string {
 }
 
 router.post("/redesign", async (req, res) => {
-  const body = req.body as { image?: unknown; styleId?: unknown };
+  const body = req.body as {
+    image?: unknown;
+    styleId?: unknown;
+    roomTypeId?: unknown;
+  };
   const image = typeof body.image === "string" ? body.image : "";
   const styleId = typeof body.styleId === "string" ? body.styleId : "";
+  const roomTypeId =
+    typeof body.roomTypeId === "string" ? body.roomTypeId : "";
 
   if (!image) {
     res.status(400).json({ message: "An image is required." });
@@ -98,13 +120,19 @@ router.post("/redesign", async (req, res) => {
     return;
   }
 
+  const room = getRoom(roomTypeId);
+  if (!room) {
+    res.status(400).json({ message: `Unknown room type: ${roomTypeId}` });
+    return;
+  }
+
   const decoded = decodeImage(image);
   if ("error" in decoded) {
     res.status(400).json({ message: decoded.error });
     return;
   }
 
-  const products = getProductsForStyle(styleId);
+  const products = getProductsForRoom(roomTypeId);
 
   try {
     const { buffer, mime, ext } = decoded;
@@ -113,7 +141,7 @@ router.post("/redesign", async (req, res) => {
     const response = await openai.images.edit({
       model: "gpt-image-2",
       image: file,
-      prompt: buildPrompt(style, products),
+      prompt: buildPrompt(style, room, products),
       size: "auto",
     });
 
