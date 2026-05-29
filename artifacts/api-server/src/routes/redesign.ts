@@ -129,7 +129,10 @@ type Uploadable = Awaited<ReturnType<typeof toFile>>;
 
 type ProductReference = { product: Product; file: Uploadable };
 
-type RefLogger = { warn: (obj: Record<string, unknown>, msg: string) => void };
+type RefLogger = {
+  warn: (obj: Record<string, unknown>, msg: string) => void;
+  info: (obj: Record<string, unknown>, msg: string) => void;
+};
 
 const REFERENCE_FETCH_TIMEOUT_MS = 8000;
 
@@ -184,7 +187,20 @@ async function fetchProductReferenceImages(
       }
     }),
   );
-  return results.filter((r): r is ProductReference => r !== null);
+  const refs = results.filter((r): r is ProductReference => r !== null);
+  log?.info(
+    {
+      requested: products.length,
+      attached: refs.length,
+      images: refs.map((r) => ({
+        product: r.product.name,
+        type: r.file.type,
+        bytes: r.file.size,
+      })),
+    },
+    "Product reference images attached for redesign",
+  );
+  return refs;
 }
 
 function buildPrompt(
@@ -293,7 +309,6 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
       ),
       size: "auto",
       quality: "high",
-      input_fidelity: "high",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
@@ -386,7 +401,6 @@ router.post("/redesign", async (req, res) => {
       ),
       size: "auto",
       quality: "high",
-      input_fidelity: "high",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
