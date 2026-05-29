@@ -137,6 +137,30 @@ type RefLogger = {
 const REFERENCE_FETCH_TIMEOUT_MS = 8000;
 
 /**
+ * Width (px) requested from IKEA's CDN for reference images sent to the image
+ * model. The model only needs the product's shape, silhouette, and color — not
+ * full resolution — so we downscale via IKEA's `imwidth` query param to shrink
+ * the upload payload (some originals are 400KB+) and speed up the request.
+ */
+const REFERENCE_IMAGE_WIDTH = 512;
+
+/**
+ * Returns a downscaled variant of an IKEA product image URL by setting the
+ * `imwidth` query param. Non-IKEA URLs (and malformed ones) are returned
+ * unchanged so the fetch still has something to try.
+ */
+function downscaledIkeaUrl(url: string, width: number): string {
+  if (!url.includes("ikea.com")) return url;
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("imwidth", String(width));
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Fetches each product's IKEA image and converts it to an Uploadable so it can
  * be passed to the image model as a visual reference. This grounds the generated
  * furniture in the real product's shape/silhouette/color rather than the model
@@ -155,9 +179,12 @@ async function fetchProductReferenceImages(
   const results = await Promise.all(
     products.map(async (p, i): Promise<ProductReference | null> => {
       try {
-        const res = await fetch(p.imageUrl, {
-          signal: AbortSignal.timeout(REFERENCE_FETCH_TIMEOUT_MS),
-        });
+        const res = await fetch(
+          downscaledIkeaUrl(p.imageUrl, REFERENCE_IMAGE_WIDTH),
+          {
+            signal: AbortSignal.timeout(REFERENCE_FETCH_TIMEOUT_MS),
+          },
+        );
         if (!res.ok) {
           log?.warn(
             { productId: p.id, status: res.status },

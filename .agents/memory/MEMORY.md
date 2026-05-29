@@ -1,0 +1,1 @@
+- [OpenAI image edit (gpt-image-2)](openai-image-edit.md) — gpt-image-2 rejects `input_fidelity` (SDK types lie); restart api-server after edits; refs downscaled via IKEA imwidth.
