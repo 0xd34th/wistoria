@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, Dimensions, ActivityIndicator } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import Animated, { FadeIn, FadeOut, SlideInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, SlideInUp, FadeInDown, ZoomIn } from "react-native-reanimated";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { getAssetUrl } from "@/lib/utils";
 import { useListStyles, useCreateRedesign, StylePreset } from "@workspace/api-client-react";
-
-const { width } = Dimensions.get("window");
 
 export default function CreateScreen() {
   const colors = useColors();
@@ -43,7 +41,7 @@ export default function CreateScreen() {
 
     if (!result.canceled && result.assets[0].base64) {
       setImageUri(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64);
+      setImageBase64(result.assets[0].base64.replace(/^data:image\/\w+;base64,/, ""));
     }
   };
 
@@ -61,7 +59,7 @@ export default function CreateScreen() {
 
     if (!result.canceled && result.assets[0].base64) {
       setImageUri(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64);
+      setImageBase64(result.assets[0].base64.replace(/^data:image\/\w+;base64,/, ""));
     }
   };
 
@@ -99,12 +97,14 @@ export default function CreateScreen() {
 
   if (isGenerating) {
     return (
-      <View style={[styles.generatingContainer, { backgroundColor: colors.background }]}>
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.generatingContent}>
-          <ActivityIndicator size="large" color={colors.primary} style={styles.generatingSpinner} />
-          <Text style={[styles.generatingTitle, { color: colors.foreground }]}>Designing your room...</Text>
+      <View style={[styles.generatingContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <Animated.View entering={FadeIn.duration(600)} exiting={FadeOut} style={styles.generatingContent}>
+          <View style={[styles.generatingIconWrap, { backgroundColor: colors.accent }]}>
+             <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+          <Text style={[styles.generatingTitle, { color: colors.foreground }]}>Curating your space...</Text>
           <Text style={[styles.generatingSubtitle, { color: colors.mutedForeground }]}>
-            This usually takes 20-40 seconds. We're analyzing your space and picking the perfect IKEA pieces.
+            Our AI interior designer is carefully selecting IKEA pieces that fit perfectly into your room.
           </Text>
         </Animated.View>
       </View>
@@ -113,106 +113,133 @@ export default function CreateScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 16 }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="x" size={24} color={colors.foreground} />
+          <Feather name="chevron-down" size={28} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>New Design</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Design Studio</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>1. Add a photo of your room</Text>
-        
-        {imageUri ? (
-          <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: imageUri }} style={[styles.imagePreview, { borderRadius: colors.radius }]} />
-            <Pressable 
-              style={[styles.repickButton, { backgroundColor: colors.card }]} 
-              onPress={() => setImageUri(null)}
-            >
-              <Feather name="refresh-cw" size={20} color={colors.foreground} />
-              <Text style={[styles.repickText, { color: colors.foreground }]}>Change Photo</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.photoActions}>
-            <Pressable 
-              style={[styles.photoActionCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]} 
-              onPress={takePhoto}
-            >
-              <Feather name="camera" size={32} color={colors.primary} />
-              <Text style={[styles.photoActionText, { color: colors.foreground }]}>Take Photo</Text>
-            </Pressable>
-            
-            <Pressable 
-              style={[styles.photoActionCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]} 
-              onPress={pickImage}
-            >
-              <Feather name="image" size={32} color={colors.primary} />
-              <Text style={[styles.photoActionText, { color: colors.foreground }]}>Upload Photo</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 32 }]}>2. Choose a style</Text>
-        
-        {isLoadingStyles ? (
-          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 24 }} />
-        ) : (
-          <View style={styles.stylesGrid}>
-            {stylesList?.map((style: StylePreset) => (
-              <Pressable
-                key={style.id}
-                style={[
-                  styles.styleCard,
-                  { borderRadius: colors.radius },
-                  selectedStyleId === style.id && { borderColor: colors.primary, borderWidth: 2 }
-                ]}
-                onPress={() => setSelectedStyleId(style.id)}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>The Canvas</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>Start with a clear photo of the room.</Text>
+          
+          {imageUri ? (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: imageUri }} style={[styles.imagePreview, { borderRadius: colors.radius }]} />
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.repickButton, 
+                  { backgroundColor: colors.card },
+                  pressed && { opacity: 0.9 }
+                ]} 
+                onPress={() => setImageUri(null)}
               >
-                <Image 
-                  source={{ uri: getAssetUrl(style.previewImage) }} 
-                  style={[styles.styleImage, { borderRadius: colors.radius - 2 }]} 
-                />
-                <View style={[StyleSheet.absoluteFill, styles.styleOverlay, { borderRadius: colors.radius - 2 }]} />
-                <View style={styles.styleInfo}>
-                  <Text style={styles.styleName}>{style.name}</Text>
-                  <Text style={styles.styleTagline}>{style.tagline}</Text>
-                </View>
-                {selectedStyleId === style.id && (
-                  <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
-                    <Feather name="check" size={16} color={colors.primaryForeground} />
-                  </View>
-                )}
+                <Feather name="refresh-ccw" size={18} color={colors.foreground} />
+                <Text style={[styles.repickText, { color: colors.foreground }]}>Change Canvas</Text>
               </Pressable>
-            ))}
-          </View>
-        )}
+            </View>
+          ) : (
+            <View style={styles.photoActions}>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.photoActionCard, 
+                  { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  pressed && { backgroundColor: colors.muted }
+                ]} 
+                onPress={takePhoto}
+              >
+                <View style={[styles.iconWrap, { backgroundColor: colors.muted }]}>
+                  <Feather name="camera" size={24} color={colors.primary} />
+                </View>
+                <Text style={[styles.photoActionText, { color: colors.foreground }]}>Take Photo</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.photoActionCard, 
+                  { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  pressed && { backgroundColor: colors.muted }
+                ]} 
+                onPress={pickImage}
+              >
+                <View style={[styles.iconWrap, { backgroundColor: colors.muted }]}>
+                  <Feather name="image" size={24} color={colors.primary} />
+                </View>
+                <Text style={[styles.photoActionText, { color: colors.foreground }]}>Gallery</Text>
+              </Pressable>
+            </View>
+          )}
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Vision</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>Select a style to direct the curation.</Text>
+          
+          {isLoadingStyles ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 32 }} />
+          ) : (
+            <View style={styles.stylesGrid}>
+              {stylesList?.map((style: StylePreset, index: number) => {
+                const isSelected = selectedStyleId === style.id;
+                return (
+                  <Pressable
+                    key={style.id}
+                    style={({ pressed }) => [
+                      styles.styleCard,
+                      { borderRadius: colors.radius },
+                      isSelected && { borderColor: colors.primary, borderWidth: 2, padding: 2 },
+                      pressed && { transform: [{ scale: 0.98 }] }
+                    ]}
+                    onPress={() => setSelectedStyleId(style.id)}
+                  >
+                    <Image 
+                      source={{ uri: getAssetUrl(style.previewImage) }} 
+                      style={[styles.styleImage, { borderRadius: colors.radius - (isSelected ? 4 : 2) }]} 
+                    />
+                    <View style={[StyleSheet.absoluteFill, styles.styleOverlay, { borderRadius: colors.radius - (isSelected ? 4 : 2) }]} />
+                    <View style={styles.styleInfo}>
+                      <Text style={styles.styleName}>{style.name}</Text>
+                      <Text style={styles.styleTagline}>{style.tagline}</Text>
+                    </View>
+                    {isSelected && (
+                      <Animated.View entering={ZoomIn.duration(200)} style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
+                        <Feather name="check" size={16} color={colors.primaryForeground} />
+                      </Animated.View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </Animated.View>
 
         {error && (
-          <Animated.View entering={SlideInUp} style={[styles.errorContainer, { backgroundColor: colors.destructive + '20' }]}>
+          <Animated.View entering={SlideInUp} style={[styles.errorContainer, { backgroundColor: colors.destructive + '15' }]}>
             <Feather name="alert-circle" size={20} color={colors.destructive} />
-            <Text style={[styles.errorText, { color: colors.destructive }]}>Failed to redesign room. Please try again.</Text>
+            <Text style={[styles.errorText, { color: colors.destructive }]}>Failed to curate room. Please try again.</Text>
           </Animated.View>
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom || 24, borderTopColor: colors.border, backgroundColor: colors.background }]}>
+      <Animated.View entering={SlideInUp.delay(300)} style={[styles.footer, { paddingBottom: insets.bottom || 24, borderTopColor: colors.border, backgroundColor: colors.card }]}>
         <Pressable
-          style={[
+          style={({ pressed }) => [
             styles.generateButton,
             { backgroundColor: colors.primary },
-            (!imageUri || !selectedStyleId) && { opacity: 0.5 }
+            (!imageUri || !selectedStyleId) && { opacity: 0.4 },
+            pressed && imageUri && selectedStyleId && { transform: [{ scale: 0.98 }] }
           ]}
           disabled={!imageUri || !selectedStyleId || isGenerating}
           onPress={handleGenerate}
         >
           <Text style={[styles.generateButtonText, { color: colors.primaryForeground }]}>
-            Redesign My Room
+            Curate Design
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -226,7 +253,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 16,
   },
   backButton: {
     width: 44,
@@ -235,17 +261,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
   },
   scrollContent: {
     padding: 24,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 16,
+    fontSize: 24,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  sectionSubtitle: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 20,
   },
   photoActions: {
     flexDirection: "row",
@@ -253,20 +286,32 @@ const styles = StyleSheet.create({
   },
   photoActionCard: {
     flex: 1,
-    height: 120,
+    height: 140,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 16,
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   photoActionText: {
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
   imagePreviewContainer: {
     width: "100%",
-    height: 240,
+    height: 280,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
   imagePreview: {
     width: "100%",
@@ -278,28 +323,29 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 100,
     gap: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
   repickText: {
     fontSize: 14,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
   },
   stylesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    justifyContent: "space-between",
+    rowGap: 16,
   },
   styleCard: {
-    width: (width - 48 - 16) / 2, // padding 24 on each side = 48, gap 16
-    height: 160,
+    width: "48%", // Ensure exactly two columns
+    height: 180,
     position: "relative",
     borderWidth: 2,
     borderColor: "transparent",
@@ -309,39 +355,55 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   styleOverlay: {
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   styleInfo: {
     position: "absolute",
-    bottom: 12,
-    left: 12,
-    right: 12,
+    bottom: 16,
+    left: 16,
+    right: 16,
   },
   styleName: {
     color: "#ffffff",
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 2,
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 4,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   styleTagline: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   selectedBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 12,
+    right: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   footer: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 20,
     borderTopWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 10,
   },
   generateButton: {
     width: "100%",
@@ -351,33 +413,38 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   generateButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "Inter_600SemiBold",
   },
   generatingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    padding: 32,
   },
   generatingContent: {
     alignItems: "center",
   },
-  generatingSpinner: {
+  generatingIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 32,
-    transform: [{ scale: 1.5 }],
   },
   generatingTitle: {
-    fontSize: 24,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 12,
+    fontSize: 28,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 16,
     textAlign: "center",
+    letterSpacing: -0.5,
   },
   generatingSubtitle: {
     fontSize: 16,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 26,
   },
   errorContainer: {
     flexDirection: "row",
