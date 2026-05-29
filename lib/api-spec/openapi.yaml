@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: redesign
+    description: Room redesign operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /styles:
+    get:
+      operationId: listStyles
+      tags: [redesign]
+      summary: List style presets
+      description: Returns the available interior design style presets.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StylePreset"
+  /products:
+    get:
+      operationId: listProducts
+      tags: [redesign]
+      summary: List shoppable IKEA products
+      description: Returns the curated IKEA products, optionally filtered by style.
+      parameters:
+        - name: styleId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+  /redesign:
+    post:
+      operationId: createRedesign
+      tags: [redesign]
+      summary: Redesign a room photo
+      description: Takes a base64 room photo and a style, returns an AI redesign grounded in real shoppable IKEA products.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedesignRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedesignResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +96,93 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    StylePreset:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tagline:
+          type: string
+        description:
+          type: string
+        accentColor:
+          type: string
+        previewImage:
+          type: string
+          description: Relative URL path to the style preview image (served by the API).
+      required:
+        - id
+        - name
+        - tagline
+        - description
+        - accentColor
+        - previewImage
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        color:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        styleId:
+          type: string
+        imageUrl:
+          type: string
+          description: Relative URL path to the product image (served by the API).
+        buyUrl:
+          type: string
+          description: Link to purchase the product on IKEA.
+      required:
+        - id
+        - name
+        - category
+        - color
+        - price
+        - currency
+        - styleId
+        - imageUrl
+        - buyUrl
+    RedesignRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          description: Base64-encoded room photo (no data URI prefix).
+        styleId:
+          type: string
+      required:
+        - image
+        - styleId
+    RedesignResult:
+      type: object
+      properties:
+        redesignedImage:
+          type: string
+          description: Base64-encoded redesigned room image (PNG).
+        styleId:
+          type: string
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+      required:
+        - redesignedImage
+        - styleId
+        - products

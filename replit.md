@@ -1,45 +1,62 @@
-# [Project name]
+# RoomLab
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+RoomLab is an Expo mobile app where a user photographs their room, picks a style (cozy / dark / white / modern), and gets an AI-generated redesign grounded in real, shoppable IKEA furniture with tap-to-buy links.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server
+- `pnpm --filter @workspace/mobile run dev` — run the Expo app (via workflow only)
+- `pnpm --filter @workspace/mobile run typecheck` — typecheck the mobile app
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env (auto-provisioned): `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (OpenAI via Replit AI Integrations)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Mobile: Expo (expo-router, expo-image-picker, expo-image, expo-web-browser), React Query
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
+- AI: OpenAI `gpt-image-1` image edit (via `@workspace/integrations-openai-ai-server`)
+- Validation: Zod (`zod/v4`)
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Storage: device-local AsyncStorage (no server DB)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- API contract: `lib/api-spec/openapi.yaml` (do not change `info.title` — it controls generated filenames)
+- Generated hooks/types: `lib/api-client-react/src/generated/` (consumed via `@workspace/api-client-react`)
+- IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — 4 styles, 16 products
+- Redesign route: `artifacts/api-server/src/routes/redesign.ts`
+- Static product/style images: `artifacts/api-server/assets/` served at `/api/assets/...`
+- Mobile screens: `artifacts/mobile/app/` (`index.tsx` home, `create.tsx`, `redesign/[id].tsx`)
+- AsyncStorage context: `artifacts/mobile/hooks/useSavedRedesigns.tsx`
+- Theme tokens: `artifacts/mobile/constants/colors.ts` (terracotta + sage palette)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- IKEA furniture data is isolated in `ikeaCatalog.ts` as a clean, swappable module — real IKEA APIs will replace it later without touching routes or the client.
+- `/redesign` accepts base64 image + styleId, prompts the image model with the style's products, and returns the redesigned image (base64) plus the grounding products. Body limit raised to 25mb for image payloads.
+- Mobile navigates with `useRouter().push()` rather than `<Link asChild>` — on web, `Link asChild` + `Pressable` with array styles crashes react-native-web (array style reaches a raw `<a>`).
+- The app reaches the API via `setBaseUrl(https://${EXPO_PUBLIC_DOMAIN})`; relative asset paths from the API are made absolute with `lib/utils.ts#getAssetUrl`.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Home: gallery of saved redesigns (AsyncStorage) or an empty state.
+- Create: capture/upload a room photo, choose a style, generate (20-70s).
+- Result: before/after toggle of the room, plus a shoppable IKEA product list opening buy links in the browser.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- No emojis anywhere in the product or code.
+- IKEA integration must stay a clean, swappable module; user will provide real IKEA APIs at the very end.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The `/redesign` call is slow (20-70s) and costs credits; the Create screen has a dedicated generating state.
+- Do not change `info.title` in `openapi.yaml`.
+- Run `pnpm --filter @workspace/api-spec run codegen` after editing the OpenAPI spec.
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See the `expo` skill for mobile build conventions

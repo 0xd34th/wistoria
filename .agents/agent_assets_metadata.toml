@@ -1,0 +1,128 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "9_KN7oENaYU9l5DZUTmmU"
+uri = "file://artifacts/api-server/assets/products/white-soderhamn.png"
+type = "image"
+title = "soderhamn sofa"
+
+[[generated]]
+id = "31lPQ4feneMkn2Jx44zjT"
+uri = "file://artifacts/api-server/assets/products/white-docksta.png"
+type = "image"
+title = "docksta table"
+
+[[generated]]
+id = "8R21HPi4ZQ3NsjkResbk5"
+uri = "file://artifacts/api-server/assets/products/white-billy.png"
+type = "image"
+title = "billy bookcase"
+
+[[generated]]
+id = "Aulql9i7bRiGTGvWSoSYi"
+uri = "file://artifacts/api-server/assets/products/white-fado.png"
+type = "image"
+title = "fado table lamp"
+
+[[generated]]
+id = "XgRUx6_Ho-jA_m69DKSz9"
+uri = "file://artifacts/api-server/assets/products/modern-kivik.png"
+type = "image"
+title = "kivik sofa"
+
+[[generated]]
+id = "uv3RnM34vijo-Lw_WaYFa"
+uri = "file://artifacts/api-server/assets/products/modern-listerby.png"
+type = "image"
+title = "listerby coffee table"
+
+[[generated]]
+id = "VDIq9cUhlVQy1_iqAi9E7"
+uri = "file://artifacts/api-server/assets/products/modern-nymane.png"
+type = "image"
+title = "nymane floor lamp"
+
+[[generated]]
+id = "ECZARdUw-LQH-UALkHg-F"
+uri = "file://artifacts/api-server/assets/products/modern-vittsjo.png"
+type = "image"
+title = "vittsjo shelving"
+
+[[generated]]
+id = "uzpFYLne8cIBt_qsuU27i"
+uri = "file://artifacts/api-server/assets/products/cozy-poang.png"
+type = "image"
+title = "poang armchair"
+
+[[generated]]
+id = "HK_apnqQG0kQ5eWzs11nD"
+uri = "file://artifacts/api-server/assets/products/cozy-klippan.png"
+type = "image"
+title = "klippan loveseat"
+
+[[generated]]
+id = "MHShytD3S2Rtx65lFXf-U"
+uri = "file://artifacts/api-server/assets/products/cozy-vindum.png"
+type = "image"
+title = "vindum rug"
+
+[[generated]]
+id = "afThFmR1HnypT7IEJ_Px1"
+uri = "file://artifacts/api-server/assets/products/cozy-sinnerlig.png"
+type = "image"
+title = "sinnerlig pendant"
+
+[[generated]]
+id = "ZGU_x1MrxAjpj93y1ekGG"
+uri = "file://artifacts/api-server/assets/products/dark-landskrona.png"
+type = "image"
+title = "landskrona sofa"
+
+[[generated]]
+id = "8FQ0pgUUtm40sTeYPkxzh"
+uri = "file://artifacts/api-server/assets/products/dark-hektar.png"
+type = "image"
+title = "hektar floor lamp"
+
+[[generated]]
+id = "6N0lPKJc8gZvZwddn2rBh"
+uri = "file://artifacts/api-server/assets/products/dark-kallax.png"
+type = "image"
+title = "kallax shelf"
+
+[[generated]]
+id = "mAvBCFHUE8Wn58wdznF5H"
+uri = "file://artifacts/api-server/assets/products/dark-stockholm.png"
+type = "image"
+title = "stockholm coffee table"
+
+[[generated]]
+id = "vMA_pTpxNLuyCte1ZEHJT"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "RoomLab app icon"
+
+[[generated]]
+id = "6mdyoP8rYHL5lYjNphWY7"
+uri = "file://artifacts/api-server/assets/styles/cozy.png"
+type = "image"
+title = "cozy style preview"
+
+[[generated]]
+id = "shD1VyviCIb-UkUqcNxeq"
+uri = "file://artifacts/api-server/assets/styles/dark.png"
+type = "image"
+title = "dark style preview"
+
+[[generated]]
+id = "mfLIvg-1EoECZzHTwQwuB"
+uri = "file://artifacts/api-server/assets/styles/white.png"
+type = "image"
+title = "white style preview"
+
+[[generated]]
+id = "-t9HRY4mSzE3__zIdid5c"
+uri = "file://artifacts/api-server/assets/styles/modern.png"
+type = "image"
+title = "modern style preview"
