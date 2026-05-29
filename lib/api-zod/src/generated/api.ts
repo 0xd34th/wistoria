@@ -68,19 +68,61 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
 
 
 /**
- * Takes a base64 room photo and a style, returns an AI redesign grounded in real shoppable IKEA products.
+ * Returns the saved redesigns for the given device, newest first.
+ * @summary List saved redesigns for a device
+ */
+export const ListRedesignsQueryParams = zod.object({
+  "deviceId": zod.coerce.string()
+})
+
+export const ListRedesignsResponseItem = zod.object({
+  "id": zod.string(),
+  "createdAt": zod.number().describe('Creation time as epoch milliseconds.'),
+  "deviceId": zod.string(),
+  "styleId": zod.string(),
+  "styleName": zod.string(),
+  "roomTypeId": zod.string(),
+  "roomName": zod.string(),
+  "originalImage": zod.string().describe('Base64-encoded original room photo.'),
+  "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
+  "products": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "color": zod.string(),
+  "price": zod.number(),
+  "currency": zod.string(),
+  "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
+  "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
+  "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
+  "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
+}))
+})
+export const ListRedesignsResponse = zod.array(ListRedesignsResponseItem)
+
+
+/**
+ * Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
  * @summary Redesign a room photo
  */
 export const CreateRedesignBody = zod.object({
   "image": zod.string().describe('Base64-encoded room photo (no data URI prefix).'),
   "styleId": zod.string(),
   "roomTypeId": zod.string(),
+  "deviceId": zod.string().describe('Anonymous device identifier the redesign is saved under.'),
   "productIds": zod.array(zod.string()).optional().describe('Optional subset of the room\'s auto-selected product ids to include. When omitted or empty, the server\'s default de-cluttered selection is used.')
 })
 
 export const CreateRedesignResponse = zod.object({
-  "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
+  "id": zod.string(),
+  "createdAt": zod.number().describe('Creation time as epoch milliseconds.'),
+  "deviceId": zod.string(),
   "styleId": zod.string(),
+  "styleName": zod.string(),
+  "roomTypeId": zod.string(),
+  "roomName": zod.string(),
+  "originalImage": zod.string().describe('Base64-encoded original room photo.'),
+  "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
   "products": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),

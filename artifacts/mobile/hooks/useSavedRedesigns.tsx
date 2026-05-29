@@ -1,69 +1,51 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { Product } from "@workspace/api-client-react";
+import {
+  useListRedesigns,
+  getListRedesignsQueryKey,
+  type Redesign,
+} from "@workspace/api-client-react";
+import { getDeviceId } from "@/lib/deviceId";
 
-export interface SavedRedesign {
-  id: string;
-  createdAt: number;
-  styleId: string;
-  styleName: string;
-  roomTypeId: string;
-  roomName: string;
-  originalImage: string; // base64
-  redesignedImage: string; // base64
-  products: Product[];
-}
+export type SavedRedesign = Redesign;
 
 interface SavedRedesignsContextType {
-  redesigns: SavedRedesign[];
-  saveRedesign: (redesign: SavedRedesign) => Promise<void>;
-  getRedesign: (id: string) => SavedRedesign | undefined;
+  redesigns: Redesign[];
+  getRedesign: (id: string) => Redesign | undefined;
   isLoading: boolean;
+  deviceId: string | null;
 }
 
 const SavedRedesignsContext = createContext<SavedRedesignsContextType | null>(null);
 
-const STORAGE_KEY = "@roomlab_redesigns";
-
 export function SavedRedesignsProvider({ children }: { children: ReactNode }) {
-  const [redesigns, setRedesigns] = useState<SavedRedesign[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadRedesigns();
+    getDeviceId()
+      .then(setDeviceId)
+      .catch((e) => console.error("Failed to load device id", e));
   }, []);
 
-  const loadRedesigns = async () => {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (data) {
-        setRedesigns(JSON.parse(data));
-      }
-    } catch (e) {
-      console.error("Failed to load redesigns", e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const params = { deviceId: deviceId ?? "" };
+  const { data, isLoading } = useListRedesigns(params, {
+    query: {
+      enabled: !!deviceId,
+      queryKey: getListRedesignsQueryKey(params),
+    },
+  });
 
-  const saveRedesign = async (redesign: SavedRedesign) => {
-    const updated = [redesign, ...redesigns];
-    // Update in-memory state first so the current session always works,
-    // even if on-device persistence fails (e.g. storage quota on large images).
-    setRedesigns(updated);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error("Failed to persist redesign to device storage", e);
-    }
-  };
-
-  const getRedesign = (id: string) => {
-    return redesigns.find((r) => r.id === id);
-  };
+  const redesigns = data ?? [];
+  const getRedesign = (id: string) => redesigns.find((r) => r.id === id);
 
   return (
-    <SavedRedesignsContext.Provider value={{ redesigns, saveRedesign, getRedesign, isLoading }}>
+    <SavedRedesignsContext.Provider
+      value={{
+        redesigns,
+        getRedesign,
+        isLoading: !deviceId || isLoading,
+        deviceId,
+      }}
+    >
       {children}
     </SavedRedesignsContext.Provider>
   );

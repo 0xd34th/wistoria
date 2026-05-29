@@ -11,6 +11,8 @@ export interface RedesignRequest {
   image: string;
   styleId: string;
   roomTypeId: string;
+  /** Anonymous device identifier the redesign is saved under. */
+  deviceId: string;
   /** Optional subset of the room's auto-selected product ids to include. When omitted or empty, the server's default de-cluttered selection is used. */
   productIds?: string[];
 }

@@ -1,6 +1,8 @@
 import { Buffer } from "node:buffer";
 import { Router, type IRouter } from "express";
 import { toFile } from "openai";
+import { db, redesignsTable, type RedesignRow } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 import { openai } from "../lib/openai";
 import {
   getProductsForRoom,
@@ -15,6 +17,21 @@ import {
 } from "../data/ikeaCatalog";
 
 const router: IRouter = Router();
+
+function toRedesign(row: RedesignRow) {
+  return {
+    id: row.id,
+    createdAt: row.createdAt.getTime(),
+    deviceId: row.deviceId,
+    styleId: row.styleId,
+    styleName: row.styleName,
+    roomTypeId: row.roomTypeId,
+    roomName: row.roomName,
+    originalImage: row.originalImage,
+    redesignedImage: row.redesignedImage,
+    products: row.products,
+  };
+}
 
 router.get("/styles", (_req, res) => {
   res.json(listStyles());
@@ -32,6 +49,29 @@ router.get("/products", (req, res) => {
   res.json(
     roomTypeId ? getProductsForRoom(roomTypeId) : getProductsForStyle(),
   );
+});
+
+router.get("/redesigns", async (req, res) => {
+  const deviceId =
+    typeof req.query["deviceId"] === "string"
+      ? req.query["deviceId"].trim()
+      : "";
+  if (!deviceId) {
+    res.status(400).json({ message: "A device id is required." });
+    return;
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(redesignsTable)
+      .where(eq(redesignsTable.deviceId, deviceId))
+      .orderBy(desc(redesignsTable.createdAt));
+    res.json(rows.map(toRedesign));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load saved redesigns");
+    res.status(500).json({ message: "Could not load your saved redesigns." });
+  }
 });
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
@@ -103,18 +143,26 @@ router.post("/redesign", async (req, res) => {
     image?: unknown;
     styleId?: unknown;
     roomTypeId?: unknown;
+    deviceId?: unknown;
     productIds?: unknown;
   };
   const image = typeof body.image === "string" ? body.image : "";
   const styleId = typeof body.styleId === "string" ? body.styleId : "";
   const roomTypeId =
     typeof body.roomTypeId === "string" ? body.roomTypeId : "";
+  const deviceId =
+    typeof body.deviceId === "string" ? body.deviceId.trim() : "";
   const selectedProductIds = Array.isArray(body.productIds)
     ? body.productIds.filter((id): id is string => typeof id === "string")
     : undefined;
 
   if (!image) {
     res.status(400).json({ message: "An image is required." });
+    return;
+  }
+
+  if (!deviceId) {
+    res.status(400).json({ message: "A device id is required." });
     return;
   }
 
@@ -155,7 +203,26 @@ router.post("/redesign", async (req, res) => {
       return;
     }
 
-    res.json({ redesignedImage, styleId, products });
+    const [row] = await db
+      .insert(redesignsTable)
+      .values({
+        deviceId,
+        styleId,
+        styleName: style.name,
+        roomTypeId,
+        roomName: room.name,
+        originalImage: image,
+        redesignedImage,
+        products,
+      })
+      .returning();
+
+    if (!row) {
+      res.status(500).json({ message: "The redesign could not be saved." });
+      return;
+    }
+
+    res.json(toRedesign(row));
   } catch (err) {
     req.log.error({ err }, "Redesign generation failed");
     res

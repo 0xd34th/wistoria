@@ -51,18 +51,33 @@ export interface RedesignRequest {
   image: string;
   styleId: string;
   roomTypeId: string;
+  /** Anonymous device identifier the redesign is saved under. */
+  deviceId: string;
   /** Optional subset of the room's auto-selected product ids to include. When omitted or empty, the server's default de-cluttered selection is used. */
   productIds?: string[];
 }
 
-export interface RedesignResult {
+export interface Redesign {
+  id: string;
+  /** Creation time as epoch milliseconds. */
+  createdAt: number;
+  deviceId: string;
+  styleId: string;
+  styleName: string;
+  roomTypeId: string;
+  roomName: string;
+  /** Base64-encoded original room photo. */
+  originalImage: string;
   /** Base64-encoded redesigned room image (PNG). */
   redesignedImage: string;
-  styleId: string;
   products: Product[];
 }
 
 export type ListProductsParams = {
 roomTypeId?: string;
+};
+
+export type ListRedesignsParams = {
+deviceId: string;
 };
 

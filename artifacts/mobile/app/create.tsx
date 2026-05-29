@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeOut, SlideInUp, FadeInDown, ZoomIn } from "react-native-reanimated";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { getAssetUrl } from "@/lib/utils";
-import { useListStyles, useListRooms, useListProducts, getListProductsQueryKey, useCreateRedesign, StylePreset, RoomType, Product } from "@workspace/api-client-react";
+import { useListStyles, useListRooms, useListProducts, getListProductsQueryKey, getListRedesignsQueryKey, useCreateRedesign, StylePreset, RoomType, Product } from "@workspace/api-client-react";
 
 const ROOM_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
   "living-room": "tv",
@@ -23,7 +25,8 @@ export default function CreateScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { saveRedesign } = useSavedRedesigns();
+  const { deviceId } = useSavedRedesigns();
+  const queryClient = useQueryClient();
 
   const { data: stylesList, isLoading: isLoadingStyles } = useListStyles();
   const { data: roomsList, isLoading: isLoadingRooms } = useListRooms();
@@ -103,37 +106,24 @@ export default function CreateScreen() {
   };
 
   const handleGenerate = async () => {
-    if (!imageBase64 || !selectedStyleId || !selectedRoomTypeId || !stylesList || !roomsList) return;
+    if (!imageBase64 || !selectedStyleId || !selectedRoomTypeId || !deviceId) return;
 
     try {
-      const style = stylesList.find((s) => s.id === selectedStyleId);
-      const room = roomsList.find((r) => r.id === selectedRoomTypeId);
-      if (!style || !room) return;
-
       const result = await createRedesign({
         data: {
           image: imageBase64,
           styleId: selectedStyleId,
           roomTypeId: selectedRoomTypeId,
+          deviceId,
           productIds: selectedProductIds,
         },
       });
 
-      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-
-      await saveRedesign({
-        id: newId,
-        createdAt: Date.now(),
-        styleId: style.id,
-        styleName: style.name,
-        roomTypeId: room.id,
-        roomName: room.name,
-        originalImage: imageBase64,
-        redesignedImage: result.redesignedImage,
-        products: result.products,
+      await queryClient.invalidateQueries({
+        queryKey: getListRedesignsQueryKey({ deviceId }),
       });
 
-      router.replace(`/redesign/${newId}`);
+      router.replace(`/redesign/${result.id}`);
     } catch (e) {
       console.error("Failed to generate redesign", e);
     }

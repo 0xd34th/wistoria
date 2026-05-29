@@ -77,12 +77,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Product"
+  /redesigns:
+    get:
+      operationId: listRedesigns
+      tags: [redesign]
+      summary: List saved redesigns for a device
+      description: Returns the saved redesigns for the given device, newest first.
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /redesign:
     post:
       operationId: createRedesign
       tags: [redesign]
       summary: Redesign a room photo
-      description: Takes a base64 room photo and a style, returns an AI redesign grounded in real shoppable IKEA products.
+      description: Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
       requestBody:
         required: true
         content:
@@ -95,7 +122,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RedesignResult"
+                $ref: "#/components/schemas/Redesign"
         "400":
           description: Bad request
           content:
@@ -204,6 +231,9 @@ components:
           type: string
         roomTypeId:
           type: string
+        deviceId:
+          type: string
+          description: Anonymous device identifier the redesign is saved under.
         productIds:
           type: array
           items:
@@ -213,19 +243,44 @@ components:
         - image
         - styleId
         - roomTypeId
-    RedesignResult:
+        - deviceId
+    Redesign:
       type: object
       properties:
+        id:
+          type: string
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation time as epoch milliseconds.
+        deviceId:
+          type: string
+        styleId:
+          type: string
+        styleName:
+          type: string
+        roomTypeId:
+          type: string
+        roomName:
+          type: string
+        originalImage:
+          type: string
+          description: Base64-encoded original room photo.
         redesignedImage:
           type: string
           description: Base64-encoded redesigned room image (PNG).
-        styleId:
-          type: string
         products:
           type: array
           items:
             $ref: "#/components/schemas/Product"
       required:
-        - redesignedImage
+        - id
+        - createdAt
+        - deviceId
         - styleId
+        - styleName
+        - roomTypeId
+        - roomName
+        - originalImage
+        - redesignedImage
         - products

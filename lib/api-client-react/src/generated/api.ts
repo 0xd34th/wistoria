@@ -23,9 +23,10 @@ import type {
   ErrorResponse,
   HealthStatus,
   ListProductsParams,
+  ListRedesignsParams,
   Product,
+  Redesign,
   RedesignRequest,
-  RedesignResult,
   RoomType,
   StylePreset
 } from './api.schemas';
@@ -361,6 +362,91 @@ export function useListProducts<TData = Awaited<ReturnType<typeof listProducts>>
 
 
 
+export const getListRedesignsUrl = (params: ListRedesignsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/redesigns?${stringifiedParams}` : `/api/redesigns`
+}
+
+/**
+ * Returns the saved redesigns for the given device, newest first.
+ * @summary List saved redesigns for a device
+ */
+export const listRedesigns = async (params: ListRedesignsParams, options?: RequestInit): Promise<Redesign[]> => {
+
+  return customFetch<Redesign[]>(getListRedesignsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRedesignsQueryKey = (params?: ListRedesignsParams,) => {
+    return [
+    `/api/redesigns`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListRedesignsQueryOptions = <TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<ErrorResponse>>(params: ListRedesignsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRedesignsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRedesigns>>> = ({ signal }) => listRedesigns(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRedesignsQueryResult = NonNullable<Awaited<ReturnType<typeof listRedesigns>>>
+export type ListRedesignsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List saved redesigns for a device
+ */
+
+export function useListRedesigns<TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<ErrorResponse>>(
+ params: ListRedesignsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRedesignsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getCreateRedesignUrl = () => {
 
 
@@ -370,12 +456,12 @@ export const getCreateRedesignUrl = () => {
 }
 
 /**
- * Takes a base64 room photo and a style, returns an AI redesign grounded in real shoppable IKEA products.
+ * Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
  * @summary Redesign a room photo
  */
-export const createRedesign = async (redesignRequest: RedesignRequest, options?: RequestInit): Promise<RedesignResult> => {
+export const createRedesign = async (redesignRequest: RedesignRequest, options?: RequestInit): Promise<Redesign> => {
 
-  return customFetch<RedesignResult>(getCreateRedesignUrl(),
+  return customFetch<Redesign>(getCreateRedesignUrl(),
   {
     ...options,
     method: 'POST',
