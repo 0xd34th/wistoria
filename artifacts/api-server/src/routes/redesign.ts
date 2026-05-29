@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { Router, type IRouter } from "express";
 import { toFile } from "openai";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai } from "../lib/openai";
 import {
   getProductsForStyle,
   getStyle,
@@ -111,7 +111,7 @@ router.post("/redesign", async (req, res) => {
     const file = await toFile(buffer, `room.${ext}`, { type: mime });
 
     const response = await openai.images.edit({
-      model: "gpt-image-1",
+      model: "gpt-image-2",
       image: file,
       prompt: buildPrompt(style, products),
       size: "auto",

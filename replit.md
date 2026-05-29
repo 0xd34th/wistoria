@@ -9,14 +9,14 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 - `pnpm --filter @workspace/mobile run typecheck` — typecheck the mobile app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- Required env (auto-provisioned): `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (OpenAI via Replit AI Integrations)
+- Required secret: `OPENAI_API_KEY` (user-provided; used directly, not the Replit AI Integrations proxy)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - Mobile: Expo (expo-router, expo-image-picker, expo-image, expo-web-browser), React Query
 - API: Express 5
-- AI: OpenAI `gpt-image-1` image edit (via `@workspace/integrations-openai-ai-server`)
+- AI: OpenAI `gpt-image-2` image edit (latest model), called via a direct `openai` client in `artifacts/api-server/src/lib/openai.ts` using `OPENAI_API_KEY`
 - Validation: Zod (`zod/v4`)
 - API codegen: Orval (from OpenAPI spec)
 - Storage: device-local AsyncStorage (no server DB)
@@ -27,6 +27,7 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 - Generated hooks/types: `lib/api-client-react/src/generated/` (consumed via `@workspace/api-client-react`)
 - IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — 4 styles, 16 products
 - Redesign route: `artifacts/api-server/src/routes/redesign.ts`
+- OpenAI client: `artifacts/api-server/src/lib/openai.ts` (direct `OPENAI_API_KEY` client)
 - Static product/style images: `artifacts/api-server/assets/` served at `/api/assets/...`
 - Mobile screens: `artifacts/mobile/app/` (`index.tsx` home, `create.tsx`, `redesign/[id].tsx`)
 - AsyncStorage context: `artifacts/mobile/hooks/useSavedRedesigns.tsx`
@@ -52,7 +53,8 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 
 ## Gotchas
 
-- The `/redesign` call is slow (20-70s) and costs credits; the Create screen has a dedicated generating state.
+- The `/redesign` call is slow (~50-70s) and costs credits; the Create screen has a dedicated generating state.
+- `@expo/vector-icons` (Feather) fonts must be preloaded in `app/_layout.tsx` via `...Feather.font` in `useFonts` — otherwise icons render as blank boxes on real devices (Expo Go), even though they look fine on web (where the font loads via CSS). Expo Go must be fully reloaded to pick up newly bundled fonts.
 - Do not change `info.title` in `openapi.yaml`.
 - Run `pnpm --filter @workspace/api-spec run codegen` after editing the OpenAPI spec.
 
