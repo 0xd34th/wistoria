@@ -125,22 +125,94 @@ function decodeImage(
   return { buffer, mime: detected.mime, ext: detected.ext };
 }
 
+type Uploadable = Awaited<ReturnType<typeof toFile>>;
+
+type ProductReference = { product: Product; file: Uploadable };
+
+type RefLogger = { warn: (obj: Record<string, unknown>, msg: string) => void };
+
+const REFERENCE_FETCH_TIMEOUT_MS = 8000;
+
+/**
+ * Fetches each product's IKEA image and converts it to an Uploadable so it can
+ * be passed to the image model as a visual reference. This grounds the generated
+ * furniture in the real product's shape/silhouette/color rather than the model
+ * inventing a lookalike from the text name alone. Failures are skipped (the
+ * product still appears in the text prompt) so a single bad image URL never
+ * breaks a redesign.
+ *
+ * Returns product/file PAIRS in product order, with failures dropped. Pairing
+ * keeps each reference image mapped to its product so the prompt can name them
+ * in the exact order they are sent — even when some fetches fail.
+ */
+async function fetchProductReferenceImages(
+  products: Product[],
+  log?: RefLogger,
+): Promise<ProductReference[]> {
+  const results = await Promise.all(
+    products.map(async (p, i): Promise<ProductReference | null> => {
+      try {
+        const res = await fetch(p.imageUrl, {
+          signal: AbortSignal.timeout(REFERENCE_FETCH_TIMEOUT_MS),
+        });
+        if (!res.ok) {
+          log?.warn(
+            { productId: p.id, status: res.status },
+            "Skipped product reference image (bad response)",
+          );
+          return null;
+        }
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const detected = detectImage(buffer);
+        if (!detected) {
+          log?.warn(
+            { productId: p.id },
+            "Skipped product reference image (unsupported format)",
+          );
+          return null;
+        }
+        const file = await toFile(buffer, `product-${i}.${detected.ext}`, {
+          type: detected.mime,
+        });
+        return { product: p, file };
+      } catch (err) {
+        log?.warn(
+          { productId: p.id, err },
+          "Skipped product reference image (fetch error)",
+        );
+        return null;
+      }
+    }),
+  );
+  return results.filter((r): r is ProductReference => r !== null);
+}
+
 function buildPrompt(
   style: StylePreset,
   room: RoomType,
   products: Product[],
+  referenceProducts: Product[] = [],
 ): string {
   const items = products
     .map((p) => `${p.name} (${p.category}, ${p.color})`)
     .join("; ");
-  return [
-    `You are an interior renovation tool. Edit this photograph of a real ${room.name.toLowerCase()}.`,
+  const lines = [
+    `You are an interior renovation tool. The FIRST image is a photograph of a real ${room.name.toLowerCase()} to edit.`,
     "CRITICAL: Keep the room's layout and architecture IDENTICAL to the original photo. Do not move, add, remove, or resize any walls, windows, doors, ceiling, or built-in structures. Preserve the exact camera angle, perspective, focal length, framing, room dimensions, and proportions. The position of the floor, walls, and openings must match the original precisely.",
     `Renovate the space in a ${style.name} interior style. ${style.promptHint}`,
     `Furnish and decorate the room using ONLY these specific IKEA products, placing each one naturally, realistically, and at a believable scale where it belongs in the scene: ${items}.`,
+  ];
+  if (referenceProducts.length > 0) {
+    const refNames = referenceProducts.map((p) => p.name).join("; ");
+    lines.push(
+      `The ${referenceProducts.length} image(s) AFTER the room photo are reference photos of these specific IKEA products, in this exact order: ${refNames}. Reproduce each one FAITHFULLY: match its exact shape, silhouette, proportions, frame, leg style, cushion form, materials, texture, and color. Do NOT invent a generic lookalike or alter the design — the rendered furniture must clearly be the same product shown in its reference photo, only re-lit and positioned to fit the room.`,
+    );
+  }
+  lines.push(
     "You may update wall color, flooring finish, textiles, and lighting mood to suit the style, but the structural layout and viewpoint must remain exactly the same as the original.",
     "Photorealistic interior photography with accurate proportions and natural lighting. Do not add any text, watermarks, labels, logos, or people.",
-  ].join(" ");
+  );
+  return lines.join(" ");
 }
 
 router.post("/redesigns/:id/regenerate", async (req, res) => {
@@ -208,11 +280,17 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
   try {
     const { buffer, mime, ext } = decoded;
     const file = await toFile(buffer, `room.${ext}`, { type: mime });
+    const references = await fetchProductReferenceImages(products, req.log);
 
     const response = await openai.images.edit({
       model: "gpt-image-2",
-      image: file,
-      prompt: buildPrompt(style, room, products),
+      image: [file, ...references.map((r) => r.file)],
+      prompt: buildPrompt(
+        style,
+        room,
+        products,
+        references.map((r) => r.product),
+      ),
       size: "auto",
     });
 
@@ -293,11 +371,17 @@ router.post("/redesign", async (req, res) => {
   try {
     const { buffer, mime, ext } = decoded;
     const file = await toFile(buffer, `room.${ext}`, { type: mime });
+    const references = await fetchProductReferenceImages(products, req.log);
 
     const response = await openai.images.edit({
       model: "gpt-image-2",
-      image: file,
-      prompt: buildPrompt(style, room, products),
+      image: [file, ...references.map((r) => r.file)],
+      prompt: buildPrompt(
+        style,
+        room,
+        products,
+        references.map((r) => r.product),
+      ),
       size: "auto",
     });
 
