@@ -21,6 +21,22 @@ stale running process can mask or fake-confirm a change. Always restart
 `artifacts/api-server: API Server` after editing server code before judging
 behavior.
 
+## Generation must finish under the ~120s proxy timeout
+
+The Replit reverse proxy aborts a request at ~120s. The server logs it as
+`request aborted` with `responseTime: ~120737` and `statusCode: null`; the
+client/mobile receives the proxy's own HTML 502 ("Hmm... We couldn't reach
+this app"), NOT an app error. `quality: "high"` on gpt-image-2 pushed
+generation to 120s+ and tripped this every time. `quality: "medium"` keeps
+generation in the ~50-70s range (with 5 reference images) and stays safely
+under the limit.
+
+**Why:** the user sees "curating your space" then a failure — that is the
+proxy timeout, not an OpenAI error. Furniture *matching* comes from the
+reference images, not the `quality` param, so dropping high->medium does not
+hurt match quality. If generation ever needs to exceed ~120s, it must become
+an async/polling job instead of a single synchronous request.
+
 ## Reference images are downscaled via IKEA `imwidth`
 
 Reference product photos sent to the model are fetched through

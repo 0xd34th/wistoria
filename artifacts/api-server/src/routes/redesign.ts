@@ -335,7 +335,7 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
         references.map((r) => r.product),
       ),
       size: "auto",
-      quality: "high",
+      quality: "medium",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
@@ -427,7 +427,7 @@ router.post("/redesign", async (req, res) => {
         references.map((r) => r.product),
       ),
       size: "auto",
-      quality: "high",
+      quality: "medium",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
