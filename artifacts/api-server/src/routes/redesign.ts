@@ -71,14 +71,14 @@ function decodeImage(
 function buildPrompt(style: StylePreset, products: Product[]): string {
   const items = products
     .map((p) => `${p.name} (${p.category}, ${p.color})`)
-    .join(", ");
+    .join("; ");
   return [
-    `Restyle this exact room into a ${style.name} interior design.`,
-    style.promptHint,
-    "Keep the room's existing architecture, window and door positions, wall layout, flooring, and camera perspective unchanged.",
-    `Replace and arrange the furniture and decor to naturally and realistically incorporate these specific IKEA pieces: ${items}.`,
-    `Photorealistic interior photography, natural lighting, a cohesive ${style.name} aesthetic.`,
-    "Do not add any text, watermarks, or labels.",
+    "You are an interior renovation tool. Edit this photograph of a real room.",
+    "CRITICAL: Keep the room's layout and architecture IDENTICAL to the original photo. Do not move, add, remove, or resize any walls, windows, doors, ceiling, or built-in structures. Preserve the exact camera angle, perspective, focal length, framing, room dimensions, and proportions. The position of the floor, walls, and openings must match the original precisely.",
+    `Renovate the space in a ${style.name} interior style. ${style.promptHint}`,
+    `Furnish and decorate the room using ONLY these specific IKEA products, placing each one naturally, realistically, and at a believable scale where it belongs in the scene: ${items}.`,
+    "You may update wall color, flooring finish, textiles, and lighting mood to suit the style, but the structural layout and viewpoint must remain exactly the same as the original.",
+    "Photorealistic interior photography with accurate proportions and natural lighting. Do not add any text, watermarks, labels, logos, or people.",
   ].join(" ");
 }
 

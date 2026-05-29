@@ -12,6 +12,15 @@ import { getAssetUrl } from "@/lib/utils";
 
 const { width } = Dimensions.get("window");
 
+const TAG_POSITIONS = [
+  { top: "11%", left: "5%" },
+  { top: "21%", right: "5%" },
+  { bottom: "30%", left: "5%" },
+  { bottom: "18%", right: "5%" },
+] as const;
+
+const formatPrice = (price: number) => `$${price.toFixed(2)}`;
+
 export default function RedesignResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
@@ -20,6 +29,7 @@ export default function RedesignResultScreen() {
   const { getRedesign } = useSavedRedesigns();
 
   const [showOriginal, setShowOriginal] = useState(false);
+  const [showTags, setShowTags] = useState(false);
 
   const redesign = getRedesign(id);
 
@@ -51,6 +61,18 @@ export default function RedesignResultScreen() {
             <Pressable onPress={() => router.replace("/")} style={styles.navButton}>
               <Feather name="arrow-left" size={24} color="#ffffff" />
             </Pressable>
+            {!showOriginal && (
+              <Pressable
+                onPress={() => setShowTags((v) => !v)}
+                style={[
+                  styles.tagsToggle,
+                  showTags ? { backgroundColor: colors.primary } : { backgroundColor: "rgba(0,0,0,0.45)" },
+                ]}
+              >
+                <Feather name="tag" size={16} color="#ffffff" />
+                <Text style={styles.tagsToggleText}>{showTags ? "Hide tags" : "Shop the look"}</Text>
+              </Pressable>
+            )}
           </View>
 
           <Image 
@@ -58,6 +80,29 @@ export default function RedesignResultScreen() {
             style={styles.mainImage}
             resizeMode="cover"
           />
+
+          {!showOriginal && showTags && (
+            <View style={styles.tagsLayer} pointerEvents="box-none">
+              {redesign.products.slice(0, TAG_POSITIONS.length).map((product, i) => (
+                <Pressable
+                  key={product.id}
+                  style={[styles.tag, TAG_POSITIONS[i], { backgroundColor: colors.card, borderRadius: colors.radius }]}
+                  onPress={() => openBuyLink(product.buyUrl)}
+                >
+                  <View style={styles.ikeaBadge}>
+                    <Text style={styles.ikeaBadgeText}>IKEA</Text>
+                  </View>
+                  <Text style={[styles.tagName, { color: colors.foreground }]} numberOfLines={1}>
+                    {product.name}
+                  </Text>
+                  <Text style={[styles.tagMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    {product.category}
+                  </Text>
+                  <Text style={[styles.tagPrice, { color: colors.foreground }]}>{formatPrice(product.price)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           <View style={styles.toggleContainer}>
             <Pressable
@@ -113,10 +158,13 @@ export default function RedesignResultScreen() {
                       style={[styles.productImage, { borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius }]} 
                     />
                     <View style={styles.productInfo}>
+                      <View style={styles.ikeaBadge}>
+                        <Text style={styles.ikeaBadgeText}>IKEA</Text>
+                      </View>
                       <View style={styles.productHeader}>
                         <Text style={[styles.productName, { color: colors.foreground }]} numberOfLines={1}>{product.name}</Text>
                         <Text style={[styles.productPrice, { color: colors.foreground }]}>
-                          {product.currency}{product.price}
+                          {formatPrice(product.price)}
                         </Text>
                       </View>
                       <Text style={[styles.productCategory, { color: colors.mutedForeground }]}>
@@ -162,6 +210,74 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     paddingHorizontal: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  tagsToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  tagsToggleText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  tagsLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  tag: {
+    position: "absolute",
+    maxWidth: 165,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  ikeaBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#0058A3",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    marginBottom: 6,
+  },
+  ikeaBadgeText: {
+    color: "#FFDB00",
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+  },
+  tagName: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+  },
+  tagMeta: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    marginTop: 1,
+  },
+  tagPrice: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 4,
   },
   navButton: {
     width: 48,

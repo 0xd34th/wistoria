@@ -31,10 +31,6 @@ export interface Product {
   buyUrl: string;
 }
 
-function ikeaSearchUrl(name: string): string {
-  return `https://www.ikea.com/us/en/search/?q=${encodeURIComponent(name)}`;
-}
-
 const STYLE_DATA: StylePreset[] = [
   {
     id: "cozy",
@@ -83,12 +79,13 @@ const STYLE_DATA: StylePreset[] = [
 ];
 
 function product(
-  styleId: string,
   id: string,
   name: string,
   category: string,
   color: string,
   price: number,
+  imageUrl: string,
+  buyUrl: string,
 ): Product {
   return {
     id,
@@ -97,33 +94,57 @@ function product(
     color,
     price,
     currency: "USD",
-    styleId,
-    imageUrl: `/api/assets/products/${id}.png`,
-    buyUrl: ikeaSearchUrl(name),
+    styleId: "all",
+    imageUrl,
+    buyUrl,
   };
 }
 
+/**
+ * The active IKEA test catalog: four real IKEA US products. These are the exact
+ * pieces the image model is instructed to place in every redesign, and the items
+ * surfaced as shoppable tags and cards in the app. Prices in USD.
+ *
+ * When the live IKEA product API lands, replace this array (and, if needed, the
+ * helpers below) — nothing else in the route or client should need to change.
+ */
 const PRODUCT_DATA: Product[] = [
-  // Cozy
-  product("cozy", "cozy-poang", "POÄNG Armchair", "Seating", "Birch / beige", 149),
-  product("cozy", "cozy-klippan", "KLIPPAN Loveseat", "Sofas", "Warm rust", 279),
-  product("cozy", "cozy-vindum", "VINDUM Rug", "Rugs", "Cream high pile", 179),
-  product("cozy", "cozy-sinnerlig", "SINNERLIG Pendant Lamp", "Lighting", "Natural bamboo", 79.99),
-  // Dark
-  product("dark", "dark-landskrona", "LANDSKRONA Sofa", "Sofas", "Dark grey leather", 899),
-  product("dark", "dark-hektar", "HEKTAR Floor Lamp", "Lighting", "Dark grey", 69.99),
-  product("dark", "dark-kallax", "KALLAX Shelf Unit", "Storage", "Black-brown", 79.99),
-  product("dark", "dark-stockholm", "STOCKHOLM Coffee Table", "Tables", "Walnut veneer", 279),
-  // White
-  product("white", "white-soderhamn", "SÖDERHAMN Sofa", "Sofas", "Light beige", 999),
-  product("white", "white-docksta", "DOCKSTA Table", "Tables", "White", 229),
-  product("white", "white-billy", "BILLY Bookcase", "Storage", "White", 69.99),
-  product("white", "white-fado", "FADO Table Lamp", "Lighting", "White glass", 19.99),
-  // Modern
-  product("modern", "modern-kivik", "KIVIK Sofa", "Sofas", "Slate grey", 699),
-  product("modern", "modern-listerby", "LISTERBY Coffee Table", "Tables", "Oak veneer", 179),
-  product("modern", "modern-nymane", "NYMÅNE Floor Lamp", "Lighting", "Anthracite", 89),
-  product("modern", "modern-vittsjo", "VITTSJÖ Shelving Unit", "Storage", "Black / glass", 69.99),
+  product(
+    "poang-armchair",
+    "POÄNG Armchair",
+    "Armchair",
+    "Birch veneer / Knisa light beige",
+    129,
+    "https://www.ikea.com/us/en/images/products/poaeng-armchair-birch-veneer-knisa-light-beige__0571500_pe666933_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/poaeng-armchair-birch-veneer-knisa-light-beige-s59305928/",
+  ),
+  product(
+    "lohals-rug",
+    "LOHALS Rug",
+    "Rug, flatwoven",
+    "Natural jute",
+    129,
+    "https://www.ikea.com/us/en/images/products/lohals-rug-flatwoven-natural__0280221_pe419173_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lohals-rug-flatwoven-natural-50277393/",
+  ),
+  product(
+    "lauters-floor-lamp",
+    "LAUTERS Floor Lamp",
+    "Floor lamp",
+    "Ash / white",
+    79.99,
+    "https://www.ikea.com/us/en/images/products/lauters-floor-lamp-ash-white__0663863_pe712536_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lauters-floor-lamp-ash-white-00405048/",
+  ),
+  product(
+    "sinnerlig-pendant-lamp",
+    "SINNERLIG Pendant Lamp",
+    "Pendant lamp",
+    "Bamboo / handmade",
+    69.99,
+    "https://www.ikea.com/us/en/images/products/sinnerlig-pendant-lamp-bamboo-handmade__0919001_pe786542_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/sinnerlig-pendant-lamp-bamboo-handmade-70315030/",
+  ),
 ];
 
 /** Public style list (without internal prompt hints). */
@@ -135,7 +156,11 @@ export function getStyle(styleId: string): StylePreset | undefined {
   return STYLE_DATA.find((s) => s.id === styleId);
 }
 
-export function getProductsForStyle(styleId?: string): Product[] {
-  if (!styleId) return PRODUCT_DATA;
-  return PRODUCT_DATA.filter((p) => p.styleId === styleId);
+/**
+ * Returns the active product catalog. The test catalog is global (every style is
+ * renovated with the same four real IKEA pieces), so the optional styleId is
+ * currently ignored but kept for forward compatibility with a per-style API.
+ */
+export function getProductsForStyle(_styleId?: string): Product[] {
+  return PRODUCT_DATA;
 }

@@ -25,7 +25,7 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 
 - API contract: `lib/api-spec/openapi.yaml` (do not change `info.title` — it controls generated filenames)
 - Generated hooks/types: `lib/api-client-react/src/generated/` (consumed via `@workspace/api-client-react`)
-- IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — 4 styles, 16 products
+- IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — 4 styles + a global test catalog of 4 real IKEA US products (POÄNG Armchair, LOHALS Rug, LAUTERS Floor Lamp, SINNERLIG Pendant Lamp) with real product-page buy links and IKEA CDN image URLs. `getProductsForStyle` returns all 4 regardless of style.
 - Redesign route: `artifacts/api-server/src/routes/redesign.ts`
 - OpenAI client: `artifacts/api-server/src/lib/openai.ts` (direct `OPENAI_API_KEY` client)
 - Static product/style images: `artifacts/api-server/assets/` served at `/api/assets/...`
@@ -36,7 +36,7 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 ## Architecture decisions
 
 - IKEA furniture data is isolated in `ikeaCatalog.ts` as a clean, swappable module — real IKEA APIs will replace it later without touching routes or the client.
-- `/redesign` accepts base64 image + styleId, prompts the image model with the style's products, and returns the redesigned image (base64) plus the grounding products. Body limit raised to 25mb for image payloads.
+- `/redesign` accepts base64 image + styleId, prompts the image model with the catalog products, and returns the redesigned image (base64) plus the grounding products. Body limit raised to 25mb for image payloads. The prompt is written to keep the room's layout/architecture/perspective IDENTICAL and only renovate with the catalog's IKEA pieces.
 - Mobile navigates with `useRouter().push()` rather than `<Link asChild>` — on web, `Link asChild` + `Pressable` with array styles crashes react-native-web (array style reaches a raw `<a>`).
 - The app reaches the API via `setBaseUrl(https://${EXPO_PUBLIC_DOMAIN})`; relative asset paths from the API are made absolute with `lib/utils.ts#getAssetUrl`.
 
@@ -44,7 +44,7 @@ RoomLab is an Expo mobile app where a user photographs their room, picks a style
 
 - Home: gallery of saved redesigns (AsyncStorage) or an empty state.
 - Create: capture/upload a room photo, choose a style, generate (20-70s).
-- Result: before/after toggle of the room, plus a shoppable IKEA product list opening buy links in the browser.
+- Result: before/after toggle (Canvas/Curated) of the room; a "Shop the look" toggle overlays tappable IKEA tag cards (name + price) on the redesigned image at distributed anchor points; plus a shoppable IKEA product list. All open the real IKEA product page in the browser.
 
 ## User preferences
 
