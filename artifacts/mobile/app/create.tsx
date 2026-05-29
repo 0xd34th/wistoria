@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { getAssetUrl } from "@/lib/utils";
-import { useListStyles, useListRooms, useListProducts, getListProductsQueryKey, getListRedesignsQueryKey, useCreateRedesign, StylePreset, RoomType, Product } from "@workspace/api-client-react";
+import { useListStyles, useListRooms, getListRedesignsQueryKey, useCreateRedesign, StylePreset, RoomType, Redesign } from "@workspace/api-client-react";
 
 const ROOM_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
   "living-room": "tv",
@@ -36,35 +36,6 @@ export default function CreateScreen() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
-
-  const productsParams = selectedRoomTypeId ? { roomTypeId: selectedRoomTypeId } : undefined;
-  const { data: productsList, isLoading: isLoadingProducts } = useListProducts(
-    productsParams,
-    {
-      query: {
-        enabled: !!selectedRoomTypeId,
-        queryKey: getListProductsQueryKey(productsParams),
-      },
-    },
-  );
-
-  // When the curated set for a room loads (or the room changes), default every
-  // auto-selected piece to "on" so the user starts from the full curation.
-  useEffect(() => {
-    if (productsList) {
-      setSelectedProductIds(productsList.map((p) => p.id));
-    }
-  }, [productsList]);
-
-  const toggleProduct = (id: string) => {
-    setSelectedProductIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
-    );
-  };
-
-  const hasProducts = !!productsList && productsList.length > 0;
-  const hasSelectedProduct = selectedProductIds.length > 0;
 
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
   const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
@@ -115,13 +86,16 @@ export default function CreateScreen() {
           styleId: selectedStyleId,
           roomTypeId: selectedRoomTypeId,
           deviceId,
-          productIds: selectedProductIds,
         },
       });
 
-      await queryClient.invalidateQueries({
-        queryKey: getListRedesignsQueryKey({ deviceId }),
-      });
+      // Seed the cache so the result screen can read the new design immediately,
+      // then refresh in the background.
+      const listKey = getListRedesignsQueryKey({ deviceId });
+      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+        prev ? [result, ...prev] : [result],
+      );
+      queryClient.invalidateQueries({ queryKey: listKey });
 
       router.replace(`/redesign/${result.id}`);
     } catch (e) {
@@ -244,69 +218,6 @@ export default function CreateScreen() {
           )}
         </Animated.View>
 
-        {selectedRoomTypeId && (
-          <Animated.View entering={FadeInDown.springify()}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Pieces</Text>
-            <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>
-              We curated these IKEA pieces. Tap to drop any you don't want.
-            </Text>
-
-            {isLoadingProducts ? (
-              <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-            ) : (
-              <View style={styles.piecesList}>
-                {productsList?.map((product: Product) => {
-                  const isSelected = selectedProductIds.includes(product.id);
-                  return (
-                    <Pressable
-                      key={product.id}
-                      style={({ pressed }) => [
-                        styles.pieceCard,
-                        { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-                        isSelected && { borderColor: colors.primary },
-                        !isSelected && { opacity: 0.55 },
-                        pressed && { transform: [{ scale: 0.99 }] },
-                      ]}
-                      onPress={() => toggleProduct(product.id)}
-                    >
-                      <Image
-                        source={{ uri: getAssetUrl(product.imageUrl) }}
-                        style={[styles.pieceImage, { backgroundColor: colors.muted }]}
-                      />
-                      <View style={styles.pieceInfo}>
-                        <Text style={[styles.pieceName, { color: colors.foreground }]} numberOfLines={1}>
-                          {product.name}
-                        </Text>
-                        <Text style={[styles.pieceMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
-                          {product.category}
-                        </Text>
-                        <Text style={[styles.piecePrice, { color: colors.foreground }]}>
-                          ${product.price.toFixed(2)}
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.pieceCheck,
-                          isSelected
-                            ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                            : { borderColor: colors.border },
-                        ]}
-                      >
-                        {isSelected && <Feather name="check" size={16} color={colors.primaryForeground} />}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-                {hasProducts && !hasSelectedProduct && (
-                  <Text style={[styles.piecesHint, { color: colors.destructive }]}>
-                    Keep at least one piece to curate your room.
-                  </Text>
-                )}
-              </View>
-            )}
-          </Animated.View>
-        )}
-
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Vision</Text>
           <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>Select a style to direct the curation.</Text>
@@ -362,10 +273,10 @@ export default function CreateScreen() {
           style={({ pressed }) => [
             styles.generateButton,
             { backgroundColor: colors.primary },
-            (!imageUri || !selectedRoomTypeId || !selectedStyleId || !hasSelectedProduct) && { opacity: 0.4 },
-            pressed && imageUri && selectedRoomTypeId && selectedStyleId && hasSelectedProduct && { transform: [{ scale: 0.98 }] }
+            (!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId) && { opacity: 0.4 },
+            pressed && imageUri && selectedRoomTypeId && selectedStyleId && deviceId && { transform: [{ scale: 0.98 }] }
           ]}
-          disabled={!imageUri || !selectedRoomTypeId || !selectedStyleId || !hasSelectedProduct || isGenerating}
+          disabled={!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId || isGenerating}
           onPress={handleGenerate}
         >
           <Text style={[styles.generateButtonText, { color: colors.primaryForeground }]}>

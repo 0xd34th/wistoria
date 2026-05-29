@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local working/reference assets — never push to GitHub
+attached_assets/

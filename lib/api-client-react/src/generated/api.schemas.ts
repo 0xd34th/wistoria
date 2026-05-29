@@ -57,6 +57,13 @@ export interface RedesignRequest {
   productIds?: string[];
 }
 
+export interface RegenerateRequest {
+  /** Anonymous device identifier that owns the redesign. */
+  deviceId: string;
+  /** The curated set of product ids to ground the regenerated room in. */
+  productIds: string[];
+}
+
 export interface Redesign {
   id: string;
   /** Creation time as epoch milliseconds. */

@@ -1,14 +1,24 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions, Modal, ActivityIndicator, TextInput } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
-import Animated, { FadeIn, FadeInDown, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
-import { getAssetUrl } from "@/lib/utils";
+import { ikeaImageUrl } from "@/lib/utils";
+import {
+  useListProducts,
+  getListProductsQueryKey,
+  useRegenerateRedesign,
+  getListRedesignsQueryKey,
+  type Product,
+  type Redesign,
+} from "@workspace/api-client-react";
 
 const { width } = Dimensions.get("window");
 
@@ -22,17 +32,78 @@ const TAG_POSITIONS = [
 
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
+// Turns an internal role id (e.g. "floor-lamp") into a human label ("Floor lamp")
+// for the swap category chips.
+const humanizeRole = (role: string) =>
+  role
+    .split("-")
+    .map((w) => (w.length ? w[0]!.toUpperCase() + w.slice(1) : w))
+    .join(" ");
+
 export default function RedesignResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { getRedesign } = useSavedRedesigns();
+  const { getRedesign, deviceId } = useSavedRedesigns();
+  const queryClient = useQueryClient();
+  const { mutateAsync: regenerate, isPending: isRegenerating } = useRegenerateRedesign();
+
+  const redesign = getRedesign(id);
 
   const [showOriginal, setShowOriginal] = useState(false);
   const [showTags, setShowTags] = useState(false);
+  const [workingProducts, setWorkingProducts] = useState<Product[]>(() => redesign?.products ?? []);
+  const [swapIndex, setSwapIndex] = useState<number | null>(null);
+  // Swap modal filters: default to the swapped piece's own category so a lamp
+  // swap shows lamps, with the option to browse any other category.
+  const [swapCategory, setSwapCategory] = useState<string | null>(null);
+  const [swapSearch, setSwapSearch] = useState("");
 
-  const redesign = getRedesign(id);
+  const roomTypeId = redesign?.roomTypeId ?? "";
+  const productsParams = { roomTypeId };
+  const { data: eligibleProducts, isLoading: isLoadingAlternatives } = useListProducts(productsParams, {
+    query: { enabled: !!roomTypeId, queryKey: getListProductsQueryKey(productsParams) },
+  });
+
+  const swapTarget = swapIndex !== null ? workingProducts[swapIndex] : null;
+
+  // The set of categories (roles) available in this room's eligible pool, with
+  // the swapped piece's own category surfaced first.
+  const swapCategories = useMemo(() => {
+    const roles = Array.from(new Set((eligibleProducts ?? []).map((p) => p.role)));
+    roles.sort((a, b) => humanizeRole(a).localeCompare(humanizeRole(b)));
+    if (swapTarget) {
+      return [swapTarget.role, ...roles.filter((r) => r !== swapTarget.role)];
+    }
+    return roles;
+  }, [eligibleProducts, swapTarget]);
+
+  const filteredAlternatives = useMemo(() => {
+    const q = swapSearch.trim().toLowerCase();
+    return (eligibleProducts ?? []).filter((p) => {
+      const matchesCategory = !swapCategory || p.role === swapCategory;
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }, [eligibleProducts, swapCategory, swapSearch]);
+
+  // Open the swap sheet for a given piece, defaulting the category filter to
+  // that piece's role so the user sees like-for-like options first.
+  const openSwap = (index: number) => {
+    setSwapCategory(workingProducts[index]?.role ?? null);
+    setSwapSearch("");
+    setSwapIndex(index);
+  };
+
+  // Resync the editable working set whenever the saved design first loads or its
+  // image changes (i.e. after a regeneration). User edits in between are kept.
+  useEffect(() => {
+    if (redesign) setWorkingProducts(redesign.products);
+  }, [id, redesign?.redesignedImage]);
 
   if (!redesign) {
     return (
@@ -53,10 +124,67 @@ export default function RedesignResultScreen() {
     }
   };
 
+  const removeProduct = (productId: string) => {
+    setWorkingProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
+  const chooseAlternative = (product: Product) => {
+    if (swapIndex === null) return;
+    setWorkingProducts((prev) => {
+      const next = [...prev];
+      const existingIdx = next.findIndex((p) => p.id === product.id);
+      next[swapIndex] = product;
+      if (existingIdx !== -1 && existingIdx !== swapIndex) {
+        next.splice(existingIdx, 1);
+      }
+      return next;
+    });
+    setSwapIndex(null);
+  };
+
+  const savedIds = redesign.products.map((p) => p.id).join(",");
+  const workingIds = workingProducts.map((p) => p.id).join(",");
+  const isDirty = savedIds !== workingIds;
+  const canRegenerate = isDirty && workingProducts.length > 0 && !!deviceId && !isRegenerating;
+
+  const handleRegenerate = async () => {
+    if (!deviceId || workingProducts.length === 0) return;
+    try {
+      const updated = await regenerate({
+        id,
+        data: { deviceId, productIds: workingProducts.map((p) => p.id) },
+      });
+      const listKey = getListRedesignsQueryKey({ deviceId });
+      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+        prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
+      );
+      queryClient.invalidateQueries({ queryKey: listKey });
+      setShowOriginal(false);
+    } catch (e) {
+      console.error("Failed to regenerate redesign", e);
+    }
+  };
+
+  if (isRegenerating) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background, padding: 32 }]}>
+        <Animated.View entering={FadeIn.duration(500)} style={{ alignItems: "center" }}>
+          <View style={[styles.regenIconWrap, { backgroundColor: colors.accent }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+          <Text style={[styles.regenTitle, { color: colors.foreground }]}>Reimagining your space...</Text>
+          <Text style={[styles.regenSubtitle, { color: colors.mutedForeground }]}>
+            We're regenerating the room with your curated pieces. This takes about a minute.
+          </Text>
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom || 40 }} showsVerticalScrollIndicator={false}>
-        
+      <ScrollView contentContainerStyle={{ paddingBottom: (insets.bottom || 24) + (isDirty ? 110 : 24) }} showsVerticalScrollIndicator={false}>
+
         <View style={styles.imageSection}>
           <View style={[styles.navRow, { paddingTop: insets.top + 16 }]}>
             <Pressable onPress={() => router.replace("/")} style={styles.navButton}>
@@ -76,7 +204,7 @@ export default function RedesignResultScreen() {
             )}
           </View>
 
-          <Image 
+          <Image
             source={{ uri: `data:image/png;base64,${showOriginal ? redesign.originalImage : redesign.redesignedImage}` }}
             style={styles.mainImage}
             resizeMode="cover"
@@ -141,23 +269,33 @@ export default function RedesignResultScreen() {
           <Animated.View entering={FadeInDown.delay(200)}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>The Collection</Text>
             <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>
-              Curated pieces perfectly suited for your new space.
+              These are the pieces the AI placed in your room. Remove any you don't want, or swap one for an alternative, then regenerate.
             </Text>
 
+            {workingProducts.length === 0 && (
+              <Text style={[styles.emptyHint, { color: colors.destructive }]}>
+                Add at least one piece back to regenerate your room.
+              </Text>
+            )}
+
             <View style={styles.productsList}>
-              {redesign.products.map((product, index) => (
-                <Animated.View key={product.id} entering={FadeInDown.delay(300 + index * 100).springify()}>
+              {workingProducts.map((product, index) => (
+                <View
+                  key={product.id}
+                  style={[
+                    styles.productCard,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
                   <Pressable
-                    style={({ pressed }) => [
-                      styles.productCard, 
-                      { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-                      pressed && { transform: [{ scale: 0.98 }] }
-                    ]}
+                    style={({ pressed }) => [pressed && { opacity: 0.9 }]}
                     onPress={() => openBuyLink(product.buyUrl)}
                   >
-                    <Image 
-                      source={{ uri: getAssetUrl(product.imageUrl) }} 
-                      style={[styles.productImage, { borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius }]} 
+                    <ExpoImage
+                      source={{ uri: ikeaImageUrl(product.imageUrl) }}
+                      style={[styles.productImage, { borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius }]}
+                      contentFit="cover"
+                      transition={150}
                     />
                     <View style={styles.productInfo}>
                       <View style={styles.ikeaBadge}>
@@ -178,12 +316,180 @@ export default function RedesignResultScreen() {
                       </View>
                     </View>
                   </Pressable>
-                </Animated.View>
+
+                  <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+                    <Pressable
+                      style={({ pressed }) => [styles.cardAction, pressed && { opacity: 0.6 }]}
+                      onPress={() => openSwap(index)}
+                    >
+                      <Feather name="repeat" size={18} color={colors.primary} />
+                      <Text style={[styles.cardActionText, { color: colors.primary }]}>Swap</Text>
+                    </Pressable>
+                    <View style={[styles.actionSeparator, { backgroundColor: colors.border }]} />
+                    <Pressable
+                      style={({ pressed }) => [styles.cardAction, pressed && { opacity: 0.6 }]}
+                      onPress={() => removeProduct(product.id)}
+                    >
+                      <Feather name="trash-2" size={18} color={colors.mutedForeground} />
+                      <Text style={[styles.cardActionText, { color: colors.mutedForeground }]}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
               ))}
             </View>
           </Animated.View>
         </View>
       </ScrollView>
+
+      {isDirty && (
+        <Animated.View
+          entering={FadeInDown}
+          style={[styles.footer, { paddingBottom: insets.bottom || 24, borderTopColor: colors.border, backgroundColor: colors.card }]}
+        >
+          <Pressable
+            style={({ pressed }) => [
+              styles.regenButton,
+              { backgroundColor: colors.primary },
+              !canRegenerate && { opacity: 0.4 },
+              pressed && canRegenerate && { transform: [{ scale: 0.98 }] },
+            ]}
+            disabled={!canRegenerate}
+            onPress={handleRegenerate}
+          >
+            <Feather name="refresh-cw" size={18} color={colors.primaryForeground} />
+            <Text style={[styles.regenButtonText, { color: colors.primaryForeground }]}>Regenerate room</Text>
+          </Pressable>
+        </Animated.View>
+      )}
+
+      <Modal
+        visible={swapIndex !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSwapIndex(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalSheet, { backgroundColor: colors.background, paddingBottom: insets.bottom || 24 }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Swap this piece</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>
+                  {swapTarget
+                    ? `Showing ${humanizeRole(swapCategory ?? swapTarget.role).toLowerCase()} options. Pick a category or search.`
+                    : "Pick a category or search for a piece."}
+                </Text>
+              </View>
+              <Pressable onPress={() => setSwapIndex(null)} style={[styles.modalClose, { backgroundColor: colors.muted }]}>
+                <Feather name="x" size={20} color={colors.foreground} />
+              </Pressable>
+            </View>
+
+            <View style={[styles.searchBar, { backgroundColor: colors.muted, borderRadius: colors.radius }]}>
+              <Feather name="search" size={16} color={colors.mutedForeground} />
+              <TextInput
+                value={swapSearch}
+                onChangeText={setSwapSearch}
+                placeholder="Search pieces"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.searchInput, { color: colors.foreground }]}
+                autoCorrect={false}
+              />
+              {swapSearch.length > 0 && (
+                <Pressable onPress={() => setSwapSearch("")} hitSlop={8}>
+                  <Feather name="x-circle" size={16} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+              style={styles.chipScroll}
+            >
+              <Pressable
+                onPress={() => setSwapCategory(null)}
+                style={[
+                  styles.chip,
+                  { borderColor: colors.border, borderRadius: colors.radius },
+                  swapCategory === null && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: swapCategory === null ? colors.primaryForeground : colors.foreground },
+                  ]}
+                >
+                  All
+                </Text>
+              </Pressable>
+              {swapCategories.map((role) => {
+                const active = swapCategory === role;
+                return (
+                  <Pressable
+                    key={role}
+                    onPress={() => setSwapCategory(role)}
+                    style={[
+                      styles.chip,
+                      { borderColor: colors.border, borderRadius: colors.radius },
+                      active && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.primaryForeground : colors.foreground },
+                      ]}
+                    >
+                      {humanizeRole(role)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {isLoadingAlternatives ? (
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 32 }} />
+            ) : filteredAlternatives.length === 0 ? (
+              <Text style={[styles.modalEmpty, { color: colors.mutedForeground }]}>
+                No pieces match. Try another category or search.
+              </Text>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+                {filteredAlternatives.map((product) => {
+                  const inRoom = workingProducts.some((p) => p.id === product.id);
+                  return (
+                    <Pressable
+                      key={product.id}
+                      style={({ pressed }) => [
+                        styles.altRow,
+                        { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card },
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => chooseAlternative(product)}
+                    >
+                      <ExpoImage source={{ uri: ikeaImageUrl(product.imageUrl) }} style={[styles.altImage, { backgroundColor: colors.muted }]} contentFit="cover" transition={150} />
+                      <View style={styles.altInfo}>
+                        <Text style={[styles.altName, { color: colors.foreground }]} numberOfLines={1}>{product.name}</Text>
+                        <Text style={[styles.altMeta, { color: colors.mutedForeground }]} numberOfLines={1}>{product.category}</Text>
+                        <Text style={[styles.altPrice, { color: colors.foreground }]}>{formatPrice(product.price)}</Text>
+                      </View>
+                      {inRoom ? (
+                        <View style={[styles.altBadge, { backgroundColor: colors.muted }]}>
+                          <Text style={[styles.altBadgeText, { color: colors.mutedForeground }]}>In room</Text>
+                        </View>
+                      ) : (
+                        <Feather name="plus-circle" size={22} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -347,11 +653,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 22,
   },
+  emptyHint: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    marginBottom: 16,
+  },
   productsList: {
     gap: 20,
   },
   productCard: {
     borderWidth: 1,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
@@ -395,6 +707,184 @@ const styles = StyleSheet.create({
   },
   buyText: {
     fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  cardActions: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+  },
+  cardAction: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+  },
+  cardActionText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  actionSeparator: {
+    width: 1,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  regenButton: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 100,
+  },
+  regenButtonText: {
+    fontSize: 18,
+    fontFamily: "Inter_600SemiBold",
+  },
+  regenIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 32,
+  },
+  regenTitle: {
+    fontSize: 26,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 12,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  regenSubtitle: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    maxHeight: "85%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    marginTop: 4,
+  },
+  modalClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    padding: 0,
+  },
+  chipScroll: {
+    marginBottom: 16,
+    flexGrow: 0,
+  },
+  chipRow: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  chip: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  modalEmpty: {
+    textAlign: "center",
+    marginTop: 32,
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+  },
+  altRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    padding: 12,
+    gap: 14,
+    marginBottom: 12,
+  },
+  altImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+  },
+  altInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  altName: {
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+  altMeta: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  altPrice: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 2,
+  },
+  altBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+  },
+  altBadgeText: {
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
   errorText: {

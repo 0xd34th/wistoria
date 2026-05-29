@@ -1,12 +1,16 @@
 /**
  * IKEA catalog — the swappable "real furniture" layer.
  *
- * This module is the single source of truth for the styles we offer and the
- * real IKEA products we match to each one. It is intentionally self-contained
- * so that when a live IKEA product API is available, only this file needs to
- * be replaced: keep the exported shapes (StylePreset, Product) and the lookup
- * helpers identical, and swap the in-memory data for live API calls.
+ * Styles and room types are static config. The IKEA products now live in
+ * Postgres (ikea_products): SEED_PRODUCTS below is the seed source, pushed into
+ * the table by seedIkeaProducts() on server boot, and every product read goes
+ * through the database. When a live IKEA product API lands, replace the seed
+ * (or seedIkeaProducts) — the table, read helpers, routes, and client are
+ * unaffected.
  */
+
+import { db, ikeaProductsTable } from "@workspace/db";
+import { arrayContains, inArray, sql } from "drizzle-orm";
 
 export interface StylePreset {
   id: string;
@@ -145,14 +149,15 @@ const ROOM_DATA: RoomType[] = [
 ];
 
 /**
- * The active IKEA test catalog: twenty-three real IKEA US products. These are the pool
- * the image model draws from; for any given redesign a de-cluttered subset is
- * selected per room (one piece per functional role, capped). Prices in USD.
+ * Seed source for the ikea_products table: real IKEA US products. These are the
+ * pool the image model draws from; for any given redesign a de-cluttered subset
+ * is selected per room (one piece per functional role, capped). Prices in USD.
  *
- * When the live IKEA product API lands, replace this array (and, if needed, the
- * helpers below) — nothing else in the route or client should need to change.
+ * seedIkeaProducts() upserts these into Postgres on boot. When the live IKEA
+ * product API lands, replace this array (or seedIkeaProducts) — nothing else in
+ * the route or client should need to change.
  */
-const PRODUCT_DATA: Product[] = [
+export const SEED_PRODUCTS: Product[] = [
   product(
     "kivik-sofa",
     "KIVIK Sofa",
@@ -406,6 +411,468 @@ const PRODUCT_DATA: Product[] = [
     "https://www.ikea.com/us/en/images/products/alex-drawer-unit-white__0977775_pe813763_s5.jpg?f=u",
     "https://www.ikea.com/us/en/p/alex-drawer-unit-white-00473546/",
   ),
+  product(
+    "stig-bar-stool",
+    "STIG",
+    "Bar stool with backrest",
+    "Black",
+    34.99,
+    ["kitchen"],
+    "bar-stool",
+    "https://www.ikea.com/us/en/images/products/stig-bar-stool-with-backrest-counter-height-black-black__0948110_pe798867_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/stig-bar-stool-with-backrest-counter-height-black-black-30498418/",
+  ),
+  product(
+    "nordviken-bar-stool",
+    "NORDVIKEN",
+    "Bar stool with backrest",
+    "Black",
+    59.99,
+    ["kitchen"],
+    "bar-stool",
+    "https://www.ikea.com/us/en/images/products/nordviken-bar-stool-with-backrest-counter-height-black__0714166_pe729956_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/nordviken-bar-stool-with-backrest-counter-height-black-00424693/",
+  ),
+  product(
+    "tornviken-open-shelf",
+    "TORNVIKEN",
+    "Wall shelf",
+    "White",
+    69.99,
+    ["kitchen"],
+    "open-shelf",
+    "https://www.ikea.com/us/en/images/products/tornviken-wall-shelf-off-white__0734302_pe739423_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/tornviken-wall-shelf-off-white-60391661/",
+  ),
+  product(
+    "nereby-open-shelf",
+    "NEREBY",
+    "Wall shelf",
+    "Beige",
+    9.99,
+    ["kitchen"],
+    "open-shelf",
+    "https://www.ikea.com/us/en/images/products/nereby-wall-shelf-birch__0942036_pe795921_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/nereby-wall-shelf-birch-90465924/",
+  ),
+  product(
+    "gullsudare-pendant",
+    "GULLSUDARE",
+    "Pendant lamp shade",
+    "White",
+    9.99,
+    ["kitchen", "dining-room"],
+    "pendant",
+    "https://www.ikea.com/us/en/images/products/gullsudare-pendant-lamp-shade-white-handmade__1399276_pe968294_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/gullsudare-pendant-lamp-shade-white-handmade-80583616/",
+  ),
+  product(
+    "trettioen-pendant",
+    "TRETTIOEN",
+    "Pendant lamp",
+    "White",
+    14.99,
+    ["kitchen", "dining-room"],
+    "pendant",
+    "https://www.ikea.com/us/en/images/products/trettioen-pendant-lamp-white__1210668_pe909800_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/trettioen-pendant-lamp-white-10564112/",
+  ),
+  product(
+    "forhoja-cart",
+    "FÖRHÖJA",
+    "Kitchen cart",
+    "Beige",
+    179.99,
+    ["kitchen"],
+    "cart",
+    "https://www.ikea.com/us/en/images/products/foerhoeja-kitchen-cart-birch__0736865_pe740780_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/foerhoeja-kitchen-cart-birch-80035920/",
+  ),
+  product(
+    "forhoja-cart-2",
+    "FÖRHÖJA",
+    "Kitchen cart",
+    "Beige",
+    179.99,
+    ["kitchen"],
+    "cart",
+    "https://www.ikea.com/us/en/images/products/foerhoeja-kitchen-cart-birch-white__1057905_pe849059_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/foerhoeja-kitchen-cart-birch-white-80486724/",
+  ),
+  product(
+    "hagernas-dining-table",
+    "HÄGERNÄS",
+    "Table and 4 chairs",
+    "Beige",
+    259.99,
+    ["dining-room"],
+    "dining-table",
+    "https://www.ikea.com/us/en/images/products/haegernaes-table-and-4-chairs-antique-stain-pine__1350925_pe951817_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/haegernaes-table-and-4-chairs-antique-stain-pine-70575947/",
+  ),
+  product(
+    "skogsta-dining-table",
+    "SKOGSTA",
+    "Dining table",
+    "Brown",
+    649.99,
+    ["dining-room"],
+    "dining-table",
+    "https://www.ikea.com/us/en/images/products/skogsta-dining-table-acacia-black__1499941_pe1006841_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/skogsta-dining-table-acacia-black-70419264/",
+  ),
+  product(
+    "stefan-dining-chair",
+    "STEFAN",
+    "Chair",
+    "Brown",
+    35.0,
+    ["dining-room"],
+    "dining-chair",
+    "https://www.ikea.com/us/en/images/products/stefan-chair-brown-black__0727320_pe735593_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/stefan-chair-brown-black-00211088/",
+  ),
+  product(
+    "nasinge-dining-chair",
+    "NÄSINGE",
+    "Chair",
+    "Beige",
+    65.0,
+    ["dining-room"],
+    "dining-chair",
+    "https://www.ikea.com/us/en/images/products/naesinge-chair-dark-brown-stained-kilanda-light-beige__1444950_pe987836_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/naesinge-chair-dark-brown-stained-kilanda-light-beige-00587581/",
+  ),
+  product(
+    "tonstad-desk",
+    "TONSTAD",
+    "Desk",
+    "White",
+    199.99,
+    ["home-office"],
+    "desk",
+    "https://www.ikea.com/us/en/images/products/tonstad-desk-off-white__1329852_pe945282_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/tonstad-desk-off-white-70538200/",
+  ),
+  product(
+    "utmaning-desk",
+    "UTMANING",
+    "Gaming desk",
+    "Assorted",
+    349.99,
+    ["home-office"],
+    "desk",
+    "https://www.ikea.com/us/en/images/products/utmaning-gaming-desk-black__1373988_pe960074_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/utmaning-gaming-desk-black-s89571732/",
+  ),
+  product(
+    "centerhalv-office-chair",
+    "CENTERHALV",
+    "Office chair",
+    "Black",
+    199.99,
+    ["home-office"],
+    "office-chair",
+    "https://www.ikea.com/us/en/images/products/centerhalv-office-chair-black__1408739_pe971989_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/centerhalv-office-chair-black-10601124/",
+  ),
+  product(
+    "millberget-office-chair",
+    "MILLBERGET",
+    "Swivel chair",
+    "Black",
+    119.99,
+    ["home-office"],
+    "office-chair",
+    "https://www.ikea.com/us/en/images/products/millberget-swivel-chair-murum-black__1020142_pe831799_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/millberget-swivel-chair-murum-black-00489397/",
+  ),
+  product(
+    "ekenabben-shelving",
+    "EKENABBEN",
+    "Open shelf unit",
+    "Beige",
+    69.0,
+    ["home-office"],
+    "shelving",
+    "https://www.ikea.com/us/en/images/products/ekenabben-open-shelf-unit-aspen-white__1029351_pe835758_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/ekenabben-open-shelf-unit-aspen-white-80487813/",
+  ),
+  product(
+    "lack-shelving",
+    "LACK",
+    "Wall shelf unit",
+    "White",
+    99.99,
+    ["home-office"],
+    "shelving",
+    "https://www.ikea.com/us/en/images/products/lack-wall-shelf-unit-white__0246565_pe385541_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lack-wall-shelf-unit-white-60282186/",
+  ),
+  product(
+    "tertial-task-lamp",
+    "TERTIAL",
+    "Work lamp",
+    "Gray",
+    19.99,
+    ["home-office"],
+    "task-lamp",
+    "https://www.ikea.com/us/en/images/products/tertial-work-lamp-dark-gray__0609306_pe684440_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/tertial-work-lamp-dark-gray-20355434/",
+  ),
+  product(
+    "navlinge-task-lamp",
+    "NÄVLINGE",
+    "LED work lamp",
+    "White",
+    24.99,
+    ["home-office"],
+    "task-lamp",
+    "https://www.ikea.com/us/en/images/products/naevlinge-led-work-lamp-white__0709828_pe727111_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/naevlinge-led-work-lamp-white-00404925/",
+  ),
+  product(
+    "friidrott-drawer-unit",
+    "FRIIDROTT",
+    "Drawer unit on casters",
+    "Assorted",
+    49.99,
+    ["home-office"],
+    "drawer-unit",
+    "https://www.ikea.com/us/en/images/products/friidrott-drawer-unit-on-casters-white__1480198_pe1000154_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/friidrott-drawer-unit-on-casters-white-60609071/",
+  ),
+  product(
+    "lennart-drawer-unit",
+    "LENNART",
+    "Drawer unit",
+    "White",
+    19.99,
+    ["home-office"],
+    "drawer-unit",
+    "https://www.ikea.com/us/en/images/products/lennart-drawer-unit-white__0395412_pe564513_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lennart-drawer-unit-white-30326177/",
+  ),
+  product(
+    "glostad-sofa",
+    "GLOSTAD",
+    "Sofa",
+    "Gray",
+    199.0,
+    ["living-room"],
+    "sofa",
+    "https://www.ikea.com/us/en/images/products/glostad-sofa-knisa-dark-gray__1234948_pe917261_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/glostad-sofa-knisa-dark-gray-40595942/",
+  ),
+  product(
+    "stockholm-2025-sofa",
+    "STOCKHOLM 2025",
+    "Sofa",
+    "Beige",
+    1799.0,
+    ["living-room"],
+    "sofa",
+    "https://www.ikea.com/us/en/images/products/stockholm-2025-sofa-sundhamn-beige__1362734_pe955310_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/stockholm-2025-sofa-sundhamn-beige-00586096/",
+  ),
+  product(
+    "lack-coffee-table",
+    "LACK",
+    "Coffee table",
+    "Brown",
+    29.99,
+    ["living-room"],
+    "coffee-table",
+    "https://www.ikea.com/us/en/images/products/lack-coffee-table-black-brown__57540_pe163122_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lack-coffee-table-black-brown-40104294/",
+  ),
+  product(
+    "lack-coffee-table-2",
+    "LACK",
+    "Coffee table",
+    "Brown",
+    49.99,
+    ["living-room"],
+    "coffee-table",
+    "https://www.ikea.com/us/en/images/products/lack-coffee-table-black-brown__57537_pe163119_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lack-coffee-table-black-brown-00104291/",
+  ),
+  product(
+    "strandmon-accent-seating",
+    "STRANDMON",
+    "Armchair and ottoman",
+    "Yellow",
+    369.99,
+    ["living-room"],
+    "accent-seating",
+    "https://www.ikea.com/us/en/images/products/strandmon-armchair-and-ottoman-skiftebo-yellow__1094844_pe863644_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/strandmon-armchair-and-ottoman-skiftebo-yellow-s89487875/",
+  ),
+  product(
+    "ekenaset-accent-seating",
+    "EKENÄSET",
+    "Armchair",
+    "Beige",
+    229.99,
+    ["living-room"],
+    "accent-seating",
+    "https://www.ikea.com/us/en/images/products/ekenaeset-armchair-kilanda-light-beige__1109687_pe870153_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/ekenaeset-armchair-kilanda-light-beige-30533493/",
+  ),
+  product(
+    "brimnes-bookcase",
+    "BRIMNES",
+    "Bookcase",
+    "White",
+    149.0,
+    ["living-room"],
+    "bookcase",
+    "https://www.ikea.com/us/en/images/products/brimnes-bookcase-white__0644268_pe702543_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/brimnes-bookcase-white-90301225/",
+  ),
+  product(
+    "baggebo-bookcase",
+    "BAGGEBO",
+    "Bookcase",
+    "White",
+    32.99,
+    ["living-room"],
+    "bookcase",
+    "https://www.ikea.com/us/en/images/products/baggebo-bookcase-white__0981552_pe815388_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/baggebo-bookcase-white-20436713/",
+  ),
+  product(
+    "rodflik-floor-lamp",
+    "RÖDFLIK",
+    "Floor/reading lamp",
+    "Gray",
+    54.99,
+    ["living-room", "bedroom"],
+    "floor-lamp",
+    "https://www.ikea.com/us/en/images/products/roedflik-floor-reading-lamp-gray-green__1232722_pe916583_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/roedflik-floor-reading-lamp-gray-green-80563581/",
+  ),
+  product(
+    "okensand-floor-lamp",
+    "ÖKENSAND",
+    "Floor lamp",
+    "Beige",
+    79.99,
+    ["living-room", "bedroom"],
+    "floor-lamp",
+    "https://www.ikea.com/us/en/images/products/oekensand-floor-lamp-beech-white__1187892_pe899535_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/oekensand-floor-lamp-beech-white-90541536/",
+  ),
+  product(
+    "tiphede-rug",
+    "TIPHEDE",
+    "Rug, flatwoven",
+    "Beige",
+    39.99,
+    ["living-room", "bedroom", "dining-room"],
+    "rug",
+    "https://www.ikea.com/us/en/images/products/tiphede-rug-flatwoven-natural-black__0772066_pe755879_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/tiphede-rug-flatwoven-natural-black-40559166/",
+  ),
+  product(
+    "stoense-rug",
+    "STOENSE",
+    "Rug, low pile",
+    "Gray",
+    119.99,
+    ["living-room", "bedroom", "dining-room"],
+    "rug",
+    "https://www.ikea.com/us/en/images/products/stoense-rug-low-pile-medium-gray__0624399_pe691812_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/stoense-rug-low-pile-medium-gray-30426836/",
+  ),
+  product(
+    "slattum-bed",
+    "SLATTUM",
+    "Upholstered bed frame",
+    "Gray",
+    149.0,
+    ["bedroom"],
+    "bed",
+    "https://www.ikea.com/us/en/images/products/slattum-upholstered-bed-frame-vissle-dark-gray__1259335_pe926650_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/slattum-upholstered-bed-frame-vissle-dark-gray-70571256/",
+  ),
+  product(
+    "tarva-bed",
+    "TARVA",
+    "Bed frame",
+    "Beige",
+    179.0,
+    ["bedroom"],
+    "bed",
+    "https://www.ikea.com/us/en/images/products/tarva-bed-frame-pine-luroey__0637611_pe698421_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/tarva-bed-frame-pine-luroey-s29007794/",
+  ),
+  product(
+    "storklinta-nightstand",
+    "STORKLINTA",
+    "Nightstand",
+    "White",
+    59.99,
+    ["bedroom"],
+    "nightstand",
+    "https://www.ikea.com/us/en/images/products/storklinta-nightstand-white-with-1-drawer__1283575_pe932557_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/storklinta-nightstand-white-with-1-drawer-30561155/",
+  ),
+  product(
+    "lillberget-nightstand",
+    "LILLBERGET",
+    "Nightstand",
+    "White",
+    39.99,
+    ["bedroom"],
+    "nightstand",
+    "https://www.ikea.com/us/en/images/products/lillberget-nightstand-white__1281809_pe931989_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/lillberget-nightstand-white-10567568/",
+  ),
+  product(
+    "storklinta-dresser",
+    "STORKLINTA",
+    "6-drawer dresser",
+    "White",
+    249.99,
+    ["bedroom"],
+    "dresser",
+    "https://www.ikea.com/us/en/images/products/storklinta-6-drawer-dresser-white-anchor-unlock-function__1283583_pe932540_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/storklinta-6-drawer-dresser-white-anchor-unlock-function-60561248/",
+  ),
+  product(
+    "storklinta-dresser-2",
+    "STORKLINTA",
+    "6-drawer dresser",
+    "White",
+    229.99,
+    ["bedroom"],
+    "dresser",
+    "https://www.ikea.com/us/en/images/products/storklinta-6-drawer-dresser-white-anchor-unlock-function__1283570_pe932552_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/storklinta-6-drawer-dresser-white-anchor-unlock-function-10559281/",
+  ),
+  product(
+    "fado-table-lamp",
+    "FADO",
+    "Table lamp",
+    "White",
+    29.99,
+    ["bedroom"],
+    "table-lamp",
+    "https://www.ikea.com/us/en/images/products/fado-table-lamp-white__0606976_pe682645_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/fado-table-lamp-white-70096377/",
+  ),
+  product(
+    "arstid-table-lamp",
+    "ÅRSTID",
+    "Table lamp",
+    "Yellow",
+    39.99,
+    ["bedroom"],
+    "table-lamp",
+    "https://www.ikea.com/us/en/images/products/arstid-table-lamp-brass-white__0609329_pe684454_s5.jpg?f=u",
+    "https://www.ikea.com/us/en/p/arstid-table-lamp-brass-white-80321380/",
+  ),
 ];
 
 /**
@@ -449,32 +916,88 @@ export function getRoom(roomTypeId: string): RoomType | undefined {
 }
 
 /**
- * Returns the full active product catalog. Kept for the /products endpoint and
- * forward compatibility; selection for a redesign goes through getProductsForRoom.
+ * Idempotently seeds the ikea_products table from SEED_PRODUCTS. Runs on server
+ * boot; on conflict it refreshes every field so catalog edits propagate without
+ * a manual migration. This is the one place the static seed touches the DB —
+ * all reads below go through Postgres.
  */
-export function getProductsForStyle(_styleId?: string): Product[] {
-  return PRODUCT_DATA;
+export async function seedIkeaProducts(): Promise<void> {
+  if (SEED_PRODUCTS.length === 0) return;
+  await db
+    .insert(ikeaProductsTable)
+    .values(SEED_PRODUCTS)
+    .onConflictDoUpdate({
+      target: ikeaProductsTable.id,
+      set: {
+        name: sql`excluded.name`,
+        category: sql`excluded.category`,
+        color: sql`excluded.color`,
+        price: sql`excluded.price`,
+        currency: sql`excluded.currency`,
+        roomTypes: sql`excluded.room_types`,
+        role: sql`excluded.role`,
+        imageUrl: sql`excluded.image_url`,
+        buyUrl: sql`excluded.buy_url`,
+      },
+    });
 }
 
 /**
- * Deterministically selects a de-cluttered set of products for a room: one piece
- * per functional role, ordered by the room's role priority and capped at
- * MAX_PRODUCTS_PER_ROOM. This keeps the generated room — and the "Shop the look"
- * tags overlaid on it — accurate and uncluttered.
- *
- * Optionally, callers may pass `selectedProductIds` to narrow the default
- * selection to a user-chosen subset (e.g. dropping a category before
- * generating). Only ids that belong to the room's default selection are
- * honored, the default order is preserved, and the result is still capped. If
- * the filter would leave nothing, the full default selection is returned so a
- * redesign is never grounded in zero products.
+ * Returns the full active product catalog from the database. Kept for the
+ * /products endpoint and forward compatibility; selection for a redesign goes
+ * through getProductsForRoom.
  */
-export function getProductsForRoom(
+export async function getProductsForStyle(_styleId?: string): Promise<Product[]> {
+  return db.select().from(ikeaProductsTable);
+}
+
+/**
+ * All products eligible for a room (the full swappable pool), regardless of the
+ * de-cluttered default selection. Powers the result screen's "swap" picker,
+ * where the user can replace a curated piece with any other eligible product.
+ */
+export async function getEligibleProductsForRoom(
+  roomTypeId: string,
+): Promise<Product[]> {
+  return db
+    .select()
+    .from(ikeaProductsTable)
+    .where(arrayContains(ikeaProductsTable.roomTypes, [roomTypeId]));
+}
+
+/**
+ * Resolves an explicit, user-curated list of product ids to real products,
+ * preserving the given order and dropping any unknown ids. Used when the user
+ * has curated their pieces on the result screen and asks to regenerate.
+ */
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select()
+    .from(ikeaProductsTable)
+    .where(inArray(ikeaProductsTable.id, ids));
+  const byId = new Map(rows.map((p) => [p.id, p]));
+  const result: Product[] = [];
+  for (const id of ids) {
+    const match = byId.get(id);
+    if (match) result.push(match);
+  }
+  return result;
+}
+
+/**
+ * Pure de-clutter logic over an already-fetched eligible pool: picks one piece
+ * per functional role, ordered by the room's role priority and capped at
+ * MAX_PRODUCTS_PER_ROOM. Extracted as a pure function so it stays unit-testable
+ * without a database. Optionally narrows to a user-chosen subset; if the filter
+ * would leave nothing, the full default selection is returned so a redesign is
+ * never grounded in zero products.
+ */
+export function selectDecluttered(
+  eligible: Product[],
   roomTypeId: string,
   selectedProductIds?: string[],
 ): Product[] {
-  const eligible = PRODUCT_DATA.filter((p) => p.roomTypes.includes(roomTypeId));
-
   const byRole = new Map<string, Product>();
   for (const p of eligible) {
     if (!byRole.has(p.role)) {
@@ -505,4 +1028,18 @@ export function getProductsForRoom(
   const allowed = new Set(selectedProductIds);
   const filtered = defaultSelection.filter((p) => allowed.has(p.id));
   return filtered.length > 0 ? filtered : defaultSelection;
+}
+
+/**
+ * Deterministically selects a de-cluttered set of products for a room from the
+ * database: one piece per functional role, ordered by the room's role priority
+ * and capped. Keeps the generated room — and the "Shop the look" tags overlaid
+ * on it — accurate and uncluttered.
+ */
+export async function getProductsForRoom(
+  roomTypeId: string,
+  selectedProductIds?: string[],
+): Promise<Product[]> {
+  const eligible = await getEligibleProductsForRoom(roomTypeId);
+  return selectDecluttered(eligible, roomTypeId, selectedProductIds);
 }

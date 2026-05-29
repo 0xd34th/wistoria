@@ -5,6 +5,8 @@ import { db, redesignsTable, type RedesignRow } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { openai } from "../lib/openai";
 import {
+  getEligibleProductsForRoom,
+  getProductsByIds,
   getProductsForRoom,
   getProductsForStyle,
   getRoom,
@@ -41,14 +43,17 @@ router.get("/rooms", (_req, res) => {
   res.json(listRooms());
 });
 
-router.get("/products", (req, res) => {
+router.get("/products", async (req, res) => {
   const roomTypeId =
     typeof req.query["roomTypeId"] === "string"
       ? req.query["roomTypeId"]
       : undefined;
-  res.json(
-    roomTypeId ? getProductsForRoom(roomTypeId) : getProductsForStyle(),
-  );
+  // For a room we return the full eligible pool so the result screen can offer
+  // every product as a swap alternative; without a room we return everything.
+  const products = roomTypeId
+    ? await getEligibleProductsForRoom(roomTypeId)
+    : await getProductsForStyle();
+  res.json(products);
 });
 
 router.get("/redesigns", async (req, res) => {
@@ -138,6 +143,105 @@ function buildPrompt(
   ].join(" ");
 }
 
+router.post("/redesigns/:id/regenerate", async (req, res) => {
+  const id = req.params.id;
+  const body = req.body as {
+    deviceId?: unknown;
+    productIds?: unknown;
+  };
+  const deviceId =
+    typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+  const productIds = Array.isArray(body.productIds)
+    ? body.productIds.filter((pid): pid is string => typeof pid === "string")
+    : [];
+
+  if (!deviceId) {
+    res.status(400).json({ message: "A device id is required." });
+    return;
+  }
+
+  if (productIds.length === 0) {
+    res
+      .status(400)
+      .json({ message: "Keep at least one piece to regenerate the room." });
+    return;
+  }
+
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ message: "Design not found." });
+    return;
+  }
+
+  const existing = await db
+    .select()
+    .from(redesignsTable)
+    .where(eq(redesignsTable.id, id))
+    .limit(1);
+  const current = existing[0];
+
+  if (!current || current.deviceId !== deviceId) {
+    res.status(404).json({ message: "Design not found." });
+    return;
+  }
+
+  const style = getStyle(current.styleId);
+  const room = getRoom(current.roomTypeId);
+  if (!style || !room) {
+    res.status(400).json({ message: "This design can no longer be generated." });
+    return;
+  }
+
+  const products = await getProductsByIds(productIds);
+  if (products.length === 0) {
+    res.status(400).json({ message: "None of the chosen pieces are available." });
+    return;
+  }
+
+  const decoded = decodeImage(current.originalImage);
+  if ("error" in decoded) {
+    res.status(400).json({ message: decoded.error });
+    return;
+  }
+
+  try {
+    const { buffer, mime, ext } = decoded;
+    const file = await toFile(buffer, `room.${ext}`, { type: mime });
+
+    const response = await openai.images.edit({
+      model: "gpt-image-2",
+      image: file,
+      prompt: buildPrompt(style, room, products),
+      size: "auto",
+    });
+
+    const redesignedImage = response.data?.[0]?.b64_json ?? "";
+    if (!redesignedImage) {
+      res.status(502).json({ message: "The redesign could not be generated." });
+      return;
+    }
+
+    const [row] = await db
+      .update(redesignsTable)
+      .set({ redesignedImage, products })
+      .where(eq(redesignsTable.id, id))
+      .returning();
+
+    if (!row) {
+      res.status(500).json({ message: "The redesign could not be saved." });
+      return;
+    }
+
+    res.json(toRedesign(row));
+  } catch (err) {
+    req.log.error({ err }, "Redesign regeneration failed");
+    res
+      .status(502)
+      .json({ message: "Something went wrong regenerating the redesign." });
+  }
+});
+
 router.post("/redesign", async (req, res) => {
   const body = req.body as {
     image?: unknown;
@@ -184,7 +288,7 @@ router.post("/redesign", async (req, res) => {
     return;
   }
 
-  const products = getProductsForRoom(roomTypeId, selectedProductIds);
+  const products = await getProductsForRoom(roomTypeId, selectedProductIds);
 
   try {
     const { buffer, mime, ext } = decoded;

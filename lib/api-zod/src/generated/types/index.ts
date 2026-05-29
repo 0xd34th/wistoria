@@ -13,5 +13,6 @@ export * from './listRedesignsParams';
 export * from './product';
 export * from './redesign';
 export * from './redesignRequest';
+export * from './regenerateRequest';
 export * from './roomType';
 export * from './stylePreset';

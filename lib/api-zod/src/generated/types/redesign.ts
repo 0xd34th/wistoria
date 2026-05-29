@@ -10,7 +10,7 @@ import type { Product } from './product';
 export interface Redesign {
   id: string;
   /** Creation time as epoch milliseconds. */
-  createdAt: bigint;
+  createdAt: number;
   deviceId: string;
   styleId: string;
   styleName: string;

@@ -104,6 +104,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /redesigns/{id}/regenerate:
+    post:
+      operationId: regenerateRedesign
+      tags: [redesign]
+      summary: Regenerate a saved redesign with a curated set of pieces
+      description: Re-runs the AI redesign for an existing saved design using the user's curated product selection, updates the saved design in place, and returns it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegenerateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /redesign:
     post:
       operationId: createRedesign
@@ -244,6 +281,20 @@ components:
         - styleId
         - roomTypeId
         - deviceId
+    RegenerateRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          description: Anonymous device identifier that owns the redesign.
+        productIds:
+          type: array
+          items:
+            type: string
+          description: The curated set of product ids to ground the regenerated room in.
+      required:
+        - deviceId
+        - productIds
     Redesign:
       type: object
       properties:
@@ -251,7 +302,6 @@ components:
           type: string
         createdAt:
           type: integer
-          format: int64
           description: Creation time as epoch milliseconds.
         deviceId:
           type: string

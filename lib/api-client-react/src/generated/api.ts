@@ -27,6 +27,7 @@ import type {
   Product,
   Redesign,
   RedesignRequest,
+  RegenerateRequest,
   RoomType,
   StylePreset
 } from './api.schemas';
@@ -446,6 +447,79 @@ export function useListRedesigns<TData = Awaited<ReturnType<typeof listRedesigns
 
 
 
+
+export const getRegenerateRedesignUrl = (id: string,) => {
+
+
+
+
+  return `/api/redesigns/${id}/regenerate`
+}
+
+/**
+ * Re-runs the AI redesign for an existing saved design using the user's curated product selection, updates the saved design in place, and returns it.
+ * @summary Regenerate a saved redesign with a curated set of pieces
+ */
+export const regenerateRedesign = async (id: string,
+    regenerateRequest: RegenerateRequest, options?: RequestInit): Promise<Redesign> => {
+
+  return customFetch<Redesign>(getRegenerateRedesignUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      regenerateRequest,)
+  }
+);}
+
+
+
+
+export const getRegenerateRedesignMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateRedesign>>, TError,{id: string;data: BodyType<RegenerateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof regenerateRedesign>>, TError,{id: string;data: BodyType<RegenerateRequest>}, TContext> => {
+
+const mutationKey = ['regenerateRedesign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof regenerateRedesign>>, {id: string;data: BodyType<RegenerateRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  regenerateRedesign(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegenerateRedesignMutationResult = NonNullable<Awaited<ReturnType<typeof regenerateRedesign>>>
+    export type RegenerateRedesignMutationBody = BodyType<RegenerateRequest>
+    export type RegenerateRedesignMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Regenerate a saved redesign with a curated set of pieces
+ */
+export const useRegenerateRedesign = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof regenerateRedesign>>, TError,{id: string;data: BodyType<RegenerateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof regenerateRedesign>>,
+        TError,
+        {id: string;data: BodyType<RegenerateRequest>},
+        TContext
+      > => {
+      return useMutation(getRegenerateRedesignMutationOptions(options));
+    }
 
 export const getCreateRedesignUrl = () => {
 

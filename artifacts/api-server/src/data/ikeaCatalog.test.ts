@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { getProductsForRoom } from "./ikeaCatalog";
+import { SEED_PRODUCTS, selectDecluttered } from "./ikeaCatalog";
 
 /**
  * Locks in the deterministic per-room product selection. These curated sets are
  * what the "Shop the look" tags are anchored to, so their exact contents and
- * order must stay stable. If a catalog edit changes either, this test should
- * fail loudly so the change is a deliberate decision.
+ * order must stay stable. The selection logic is pure (selectDecluttered) and
+ * tested over the in-memory seed pool, so it needs no database.
  */
-describe("getProductsForRoom", () => {
+function eligible(roomTypeId: string) {
+  return SEED_PRODUCTS.filter((p) => p.roomTypes.includes(roomTypeId));
+}
+
+describe("selectDecluttered", () => {
   it("returns the exact ordered living-room set", () => {
-    const ids = getProductsForRoom("living-room").map((p) => p.id);
+    const ids = selectDecluttered(eligible("living-room"), "living-room").map(
+      (p) => p.id,
+    );
     expect(ids).toEqual([
       "kivik-sofa",
       "listerby-coffee-table",
@@ -20,7 +26,9 @@ describe("getProductsForRoom", () => {
   });
 
   it("returns the exact ordered bedroom set", () => {
-    const ids = getProductsForRoom("bedroom").map((p) => p.id);
+    const ids = selectDecluttered(eligible("bedroom"), "bedroom").map(
+      (p) => p.id,
+    );
     expect(ids).toEqual([
       "malm-bed-frame",
       "hemnes-nightstand",

@@ -17,7 +17,7 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 16 }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>RoomLab</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Wistoria</Text>
         <Pressable
           style={({ pressed }) => [
             styles.addButton,
