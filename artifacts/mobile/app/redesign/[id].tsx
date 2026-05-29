@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions, Modal, ActivityIndicator, TextInput, FlatList } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions, Modal, ActivityIndicator, TextInput, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -391,7 +391,10 @@ export default function RedesignResultScreen() {
         transparent
         onRequestClose={() => setSwapIndex(null)}
       >
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={[styles.modalSheet, { backgroundColor: colors.background, paddingBottom: insets.bottom || 24 }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
@@ -569,7 +572,7 @@ export default function RedesignResultScreen() {
               />
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -861,7 +864,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalSheet: {
-    maxHeight: "85%",
+    height: "85%",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
