@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions, Modal, ActivityIndicator, TextInput } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Dimensions, Modal, ActivityIndicator, TextInput, FlatList } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -55,9 +55,12 @@ export default function RedesignResultScreen() {
   const [showTags, setShowTags] = useState(false);
   const [workingProducts, setWorkingProducts] = useState<Product[]>(() => redesign?.products ?? []);
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
-  // Swap modal filters: default to the swapped piece's own category so a lamp
-  // swap shows lamps, with the option to browse any other category.
-  const [swapCategory, setSwapCategory] = useState<string | null>(null);
+  // Swap modal filters: a broad bucket (group, e.g. Lighting) with the option to
+  // narrow to a specific category (role, e.g. Table Lamp). Defaults to the
+  // swapped piece's own bucket so a lamp swap shows lamps, then lets the user
+  // browse other buckets or drill down.
+  const [swapGroup, setSwapGroup] = useState<string | null>(null);
+  const [swapRole, setSwapRole] = useState<string | null>(null);
   const [swapSearch, setSwapSearch] = useState("");
 
   const roomTypeId = redesign?.roomTypeId ?? "";
@@ -68,35 +71,58 @@ export default function RedesignResultScreen() {
 
   const swapTarget = swapIndex !== null ? workingProducts[swapIndex] : null;
 
-  // The set of categories (roles) available in this room's eligible pool, with
-  // the swapped piece's own category surfaced first.
-  const swapCategories = useMemo(() => {
-    const roles = Array.from(new Set((eligibleProducts ?? []).map((p) => p.role)));
+  // Broad buckets available in this room's eligible pool, with the swapped
+  // piece's own bucket surfaced first.
+  const swapGroups = useMemo(() => {
+    const groups = Array.from(new Set((eligibleProducts ?? []).map((p) => p.group)));
+    groups.sort((a, b) => a.localeCompare(b));
+    if (swapTarget && groups.includes(swapTarget.group)) {
+      return [swapTarget.group, ...groups.filter((g) => g !== swapTarget.group)];
+    }
+    return groups;
+  }, [eligibleProducts, swapTarget]);
+
+  // Narrow categories (roles) within the selected broad bucket, swapped piece's
+  // own role first when it belongs to the active bucket.
+  const swapRoles = useMemo(() => {
+    if (!swapGroup) return [];
+    const roles = Array.from(
+      new Set((eligibleProducts ?? []).filter((p) => p.group === swapGroup).map((p) => p.role)),
+    );
     roles.sort((a, b) => humanizeRole(a).localeCompare(humanizeRole(b)));
-    if (swapTarget) {
+    if (swapTarget && swapTarget.group === swapGroup && roles.includes(swapTarget.role)) {
       return [swapTarget.role, ...roles.filter((r) => r !== swapTarget.role)];
     }
     return roles;
-  }, [eligibleProducts, swapTarget]);
+  }, [eligibleProducts, swapGroup, swapTarget]);
 
   const filteredAlternatives = useMemo(() => {
     const q = swapSearch.trim().toLowerCase();
     return (eligibleProducts ?? []).filter((p) => {
-      const matchesCategory = !swapCategory || p.role === swapCategory;
+      const matchesGroup = !swapGroup || p.group === swapGroup;
+      const matchesRole = !swapRole || p.role === swapRole;
       const matchesSearch =
         !q ||
         p.name.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      return matchesGroup && matchesRole && matchesSearch;
     });
-  }, [eligibleProducts, swapCategory, swapSearch]);
+  }, [eligibleProducts, swapGroup, swapRole, swapSearch]);
 
-  // Open the swap sheet for a given piece, defaulting the category filter to
-  // that piece's role so the user sees like-for-like options first.
+  // Open the swap sheet for a given piece, defaulting the broad bucket to that
+  // piece's group so the user sees like-for-like options first (e.g. a lamp
+  // swap shows the Lighting bucket), with the option to narrow further.
   const openSwap = (index: number) => {
-    setSwapCategory(workingProducts[index]?.role ?? null);
+    setSwapGroup(workingProducts[index]?.group ?? null);
+    setSwapRole(null);
     setSwapSearch("");
     setSwapIndex(index);
+  };
+
+  // Switching broad bucket clears any narrow category drill-down.
+  const selectSwapGroup = (group: string | null) => {
+    setSwapGroup(group);
+    setSwapRole(null);
   };
 
   // Resync the editable working set whenever the saved design first loads or its
@@ -375,7 +401,7 @@ export default function RedesignResultScreen() {
                 <Text style={[styles.modalTitle, { color: colors.foreground }]}>Swap this piece</Text>
                 <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>
                   {swapTarget
-                    ? `Showing ${humanizeRole(swapCategory ?? swapTarget.role).toLowerCase()} options. Pick a category or search.`
+                    ? `Showing ${(swapRole ? humanizeRole(swapRole) : swapGroup ?? "all").toLowerCase()} options. Pick a category or search.`
                     : "Pick a category or search for a piece."}
                 </Text>
               </View>
@@ -408,28 +434,28 @@ export default function RedesignResultScreen() {
               style={styles.chipScroll}
             >
               <Pressable
-                onPress={() => setSwapCategory(null)}
+                onPress={() => selectSwapGroup(null)}
                 style={[
                   styles.chip,
                   { borderColor: colors.border, borderRadius: colors.radius },
-                  swapCategory === null && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  swapGroup === null && { backgroundColor: colors.primary, borderColor: colors.primary },
                 ]}
               >
                 <Text
                   style={[
                     styles.chipText,
-                    { color: swapCategory === null ? colors.primaryForeground : colors.foreground },
+                    { color: swapGroup === null ? colors.primaryForeground : colors.foreground },
                   ]}
                 >
                   All
                 </Text>
               </Pressable>
-              {swapCategories.map((role) => {
-                const active = swapCategory === role;
+              {swapGroups.map((group) => {
+                const active = swapGroup === group;
                 return (
                   <Pressable
-                    key={role}
-                    onPress={() => setSwapCategory(role)}
+                    key={group}
+                    onPress={() => selectSwapGroup(group)}
                     style={[
                       styles.chip,
                       { borderColor: colors.border, borderRadius: colors.radius },
@@ -442,12 +468,62 @@ export default function RedesignResultScreen() {
                         { color: active ? colors.primaryForeground : colors.foreground },
                       ]}
                     >
-                      {humanizeRole(role)}
+                      {group}
                     </Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
+
+            {swapGroup && swapRoles.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipRow}
+                style={styles.subChipScroll}
+              >
+                <Pressable
+                  onPress={() => setSwapRole(null)}
+                  style={[
+                    styles.subChip,
+                    { borderColor: colors.border, borderRadius: colors.radius },
+                    swapRole === null && { backgroundColor: colors.secondary, borderColor: colors.secondary },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.subChipText,
+                      { color: swapRole === null ? colors.secondaryForeground : colors.mutedForeground },
+                    ]}
+                  >
+                    All {swapGroup}
+                  </Text>
+                </Pressable>
+                {swapRoles.map((role) => {
+                  const active = swapRole === role;
+                  return (
+                    <Pressable
+                      key={role}
+                      onPress={() => setSwapRole(role)}
+                      style={[
+                        styles.subChip,
+                        { borderColor: colors.border, borderRadius: colors.radius },
+                        active && { backgroundColor: colors.secondary, borderColor: colors.secondary },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.subChipText,
+                          { color: active ? colors.secondaryForeground : colors.mutedForeground },
+                        ]}
+                      >
+                        {humanizeRole(role)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
 
             {isLoadingAlternatives ? (
               <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 32 }} />
@@ -456,12 +532,19 @@ export default function RedesignResultScreen() {
                 No pieces match. Try another category or search.
               </Text>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
-                {filteredAlternatives.map((product) => {
+              <FlatList
+                data={filteredAlternatives}
+                keyExtractor={(product) => product.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                initialNumToRender={8}
+                windowSize={5}
+                removeClippedSubviews
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item: product }) => {
                   const inRoom = workingProducts.some((p) => p.id === product.id);
                   return (
                     <Pressable
-                      key={product.id}
                       style={({ pressed }) => [
                         styles.altRow,
                         { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card },
@@ -484,8 +567,8 @@ export default function RedesignResultScreen() {
                       )}
                     </Pressable>
                   );
-                })}
-              </ScrollView>
+                }}
+              />
             )}
           </View>
         </View>
@@ -826,7 +909,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   chipScroll: {
-    marginBottom: 16,
+    marginBottom: 12,
     flexGrow: 0,
   },
   chipRow: {
@@ -841,6 +924,19 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
+  },
+  subChipScroll: {
+    marginBottom: 16,
+    flexGrow: 0,
+  },
+  subChip: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  subChipText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
   },
   modalEmpty: {
     textAlign: "center",

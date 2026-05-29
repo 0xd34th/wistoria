@@ -294,7 +294,7 @@ export const getListProductsUrl = (params?: ListProductsParams,) => {
 }
 
 /**
- * Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
+ * Returns the IKEA product catalog. When roomTypeId is provided, returns the full pool of products eligible for that room (the swappable set), not the de-cluttered default selection.
  * @summary List shoppable IKEA products
  */
 export const listProducts = async (params?: ListProductsParams, options?: RequestInit): Promise<Product[]> => {

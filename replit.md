@@ -9,6 +9,7 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - `pnpm --filter @workspace/mobile run typecheck` — typecheck the mobile app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/scripts run ingest:ikea` — re-ingest the IKEA catalog from IKEA's public search endpoint into `artifacts/api-server/src/data/ikeaSeed.json`
 - Required secret: `OPENAI_API_KEY` (user-provided; used directly, not the Replit AI Integrations proxy)
 
 ## Stack
@@ -19,13 +20,14 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - AI: OpenAI `gpt-image-2` image edit (latest model), called via a direct `openai` client in `artifacts/api-server/src/lib/openai.ts` using `OPENAI_API_KEY`
 - Validation: Zod (`zod/v4`)
 - API codegen: Orval (from OpenAPI spec)
-- Storage: device-local AsyncStorage (no server DB)
+- Storage: device-local AsyncStorage for saved redesigns; Postgres (Drizzle) for the IKEA product catalog
 
 ## Where things live
 
 - API contract: `lib/api-spec/openapi.yaml` (do not change `info.title` — it controls generated filenames)
 - Generated hooks/types: `lib/api-client-react/src/generated/` (consumed via `@workspace/api-client-react`)
-- IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — 4 styles + a global test catalog of 4 real IKEA US products (POÄNG Armchair, LOHALS Rug, LAUTERS Floor Lamp, SINNERLIG Pendant Lamp) with real product-page buy links and IKEA CDN image URLs. `getProductsForStyle` returns all 4 regardless of style.
+- IKEA catalog (swappable layer): `artifacts/api-server/src/data/ikeaCatalog.ts` — imports `ikeaSeed.json` (hundreds of real IKEA US products) as `SEED_PRODUCTS`, seeds them into Postgres on boot (`seedIkeaProducts()`, chunked upserts), and exposes async DB getters plus the pure `selectDecluttered()` selector. Each product carries a controlled `role` (narrow category, e.g. "coffee-table") and `group` (broad bucket, e.g. "Tables & Desks") plus `roomTypes`.
+- IKEA ingestion script: `scripts/src/ingestIkea.ts` (`ingest:ikea`) — queries IKEA's public search endpoint (`sik.search.blue.cdtapps.com`) across ~58 terms, normalizes each hit to the `Product` shape, derives `role`/`group`/`roomTypes` from keyword maps, dedupes, caps per role, and writes `artifacts/api-server/src/data/ikeaSeed.json`.
 - Redesign route: `artifacts/api-server/src/routes/redesign.ts`
 - OpenAI client: `artifacts/api-server/src/lib/openai.ts` (direct `OPENAI_API_KEY` client)
 - Static product/style images: `artifacts/api-server/assets/` served at `/api/assets/...`
@@ -35,7 +37,8 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 
 ## Architecture decisions
 
-- IKEA furniture data is isolated in `ikeaCatalog.ts` as a clean, swappable module — real IKEA APIs will replace it later without touching routes or the client.
+- IKEA furniture data is isolated in `ikeaCatalog.ts` as a clean, swappable module — real IKEA APIs will replace it later without touching routes or the client. The catalog now lives in Postgres (seeded from `ikeaSeed.json`); swapping the source means re-pointing the getters, not editing routes/clients.
+- The swap modal filters alternatives by `group` (broad bucket chips) with an optional `role` sub-filter (narrow category chips), so a large catalog stays navigable. The alternatives list is a virtualized `FlatList` to stay performant across hundreds of items.
 - `/redesign` accepts base64 image + styleId, prompts the image model with the catalog products, and returns the redesigned image (base64) plus the grounding products. Body limit raised to 25mb for image payloads. The prompt is written to keep the room's layout/architecture/perspective IDENTICAL and only renovate with the catalog's IKEA pieces.
 - Mobile navigates with `useRouter().push()` rather than `<Link asChild>` — on web, `Link asChild` + `Pressable` with array styles crashes react-native-web (array style reaches a raw `<a>`).
 - The app reaches the API via `setBaseUrl(https://${EXPO_PUBLIC_DOMAIN})`; relative asset paths from the API are made absolute with `lib/utils.ts#getAssetUrl`.
@@ -57,6 +60,8 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - `@expo/vector-icons` (Feather) fonts must be preloaded in `app/_layout.tsx` via `...Feather.font` in `useFonts` — otherwise icons render as blank boxes on real devices (Expo Go), even though they look fine on web (where the font loads via CSS). Expo Go must be fully reloaded to pick up newly bundled fonts.
 - Do not change `info.title` in `openapi.yaml`.
 - Run `pnpm --filter @workspace/api-spec run codegen` after editing the OpenAPI spec.
+- `seedIkeaProducts()` upserts (it does not delete), so re-running ingestion with fewer items leaves stale rows in the DB. Live `/products` count can exceed `ikeaSeed.json` length if older-id rows persist; reset the table if an exact match is required.
+- Re-running `ingest:ikea` overwrites `ikeaSeed.json`. The IKEA search endpoint is public/unauthenticated and may change shape — the script normalizes `item.product.{id,name,typeName,mainImageUrl,pipUrl,salesPrice}`.
 
 ## Pointers
 

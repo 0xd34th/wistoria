@@ -17,6 +17,8 @@ export interface Product {
   roomTypes: string[];
   /** Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection. */
   role: string;
+  /** Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter. */
+  group: string;
   /** Relative URL path to the product image (served by the API). */
   imageUrl: string;
   /** Link to purchase the product on IKEA. */

@@ -23,10 +23,14 @@ export const ikeaProductsTable = pgTable(
     currency: text("currency").notNull().default("USD"),
     roomTypes: text("room_types").array().notNull(),
     role: text("role").notNull(),
+    group: text("group").notNull().default("Other"),
     imageUrl: text("image_url").notNull(),
     buyUrl: text("buy_url").notNull(),
   },
-  (table) => [index("ikea_products_role_idx").on(table.role)],
+  (table) => [
+    index("ikea_products_role_idx").on(table.role),
+    index("ikea_products_group_idx").on(table.group),
+  ],
 );
 
 export const insertIkeaProductSchema = createInsertSchema(ikeaProductsTable);

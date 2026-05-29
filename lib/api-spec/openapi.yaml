@@ -61,7 +61,7 @@ paths:
       operationId: listProducts
       tags: [redesign]
       summary: List shoppable IKEA products
-      description: Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
+      description: Returns the IKEA product catalog. When roomTypeId is provided, returns the full pool of products eligible for that room (the swappable set), not the de-cluttered default selection.
       parameters:
         - name: roomTypeId
           in: query
@@ -241,6 +241,9 @@ components:
         role:
           type: string
           description: Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.
+        group:
+          type: string
+          description: Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.
         imageUrl:
           type: string
           description: Relative URL path to the product image (served by the API).
@@ -256,6 +259,7 @@ components:
         - currency
         - roomTypes
         - role
+        - group
         - imageUrl
         - buyUrl
     RedesignRequest:

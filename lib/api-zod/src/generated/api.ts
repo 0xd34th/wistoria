@@ -45,7 +45,7 @@ export const ListRoomsResponse = zod.array(ListRoomsResponseItem)
 
 
 /**
- * Returns the curated IKEA products. When roomTypeId is provided, returns the de-cluttered set selected for that room.
+ * Returns the IKEA product catalog. When roomTypeId is provided, returns the full pool of products eligible for that room (the swappable set), not the de-cluttered default selection.
  * @summary List shoppable IKEA products
  */
 export const ListProductsQueryParams = zod.object({
@@ -61,6 +61,7 @@ export const ListProductsResponseItem = zod.object({
   "currency": zod.string(),
   "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
   "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
+  "group": zod.string().describe('Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 })
@@ -94,6 +95,7 @@ export const ListRedesignsResponseItem = zod.object({
   "currency": zod.string(),
   "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
   "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
+  "group": zod.string().describe('Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 }))
@@ -133,6 +135,7 @@ export const RegenerateRedesignResponse = zod.object({
   "currency": zod.string(),
   "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
   "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
+  "group": zod.string().describe('Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 }))
@@ -170,6 +173,7 @@ export const CreateRedesignResponse = zod.object({
   "currency": zod.string(),
   "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
   "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
+  "group": zod.string().describe('Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.'),
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 }))
