@@ -103,11 +103,15 @@ router.post("/redesign", async (req, res) => {
     image?: unknown;
     styleId?: unknown;
     roomTypeId?: unknown;
+    productIds?: unknown;
   };
   const image = typeof body.image === "string" ? body.image : "";
   const styleId = typeof body.styleId === "string" ? body.styleId : "";
   const roomTypeId =
     typeof body.roomTypeId === "string" ? body.roomTypeId : "";
+  const selectedProductIds = Array.isArray(body.productIds)
+    ? body.productIds.filter((id): id is string => typeof id === "string")
+    : undefined;
 
   if (!image) {
     res.status(400).json({ message: "An image is required." });
@@ -132,7 +136,7 @@ router.post("/redesign", async (req, res) => {
     return;
   }
 
-  const products = getProductsForRoom(roomTypeId);
+  const products = getProductsForRoom(roomTypeId, selectedProductIds);
 
   try {
     const { buffer, mime, ext } = decoded;

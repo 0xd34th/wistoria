@@ -204,6 +204,11 @@ components:
           type: string
         roomTypeId:
           type: string
+        productIds:
+          type: array
+          items:
+            type: string
+          description: Optional subset of the room's auto-selected product ids to include. When omitted or empty, the server's default de-cluttered selection is used.
       required:
         - image
         - styleId

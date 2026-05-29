@@ -74,7 +74,8 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
 export const CreateRedesignBody = zod.object({
   "image": zod.string().describe('Base64-encoded room photo (no data URI prefix).'),
   "styleId": zod.string(),
-  "roomTypeId": zod.string()
+  "roomTypeId": zod.string(),
+  "productIds": zod.array(zod.string()).optional().describe('Optional subset of the room\'s auto-selected product ids to include. When omitted or empty, the server\'s default de-cluttered selection is used.')
 })
 
 export const CreateRedesignResponse = zod.object({

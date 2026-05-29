@@ -461,8 +461,18 @@ export function getProductsForStyle(_styleId?: string): Product[] {
  * per functional role, ordered by the room's role priority and capped at
  * MAX_PRODUCTS_PER_ROOM. This keeps the generated room — and the "Shop the look"
  * tags overlaid on it — accurate and uncluttered.
+ *
+ * Optionally, callers may pass `selectedProductIds` to narrow the default
+ * selection to a user-chosen subset (e.g. dropping a category before
+ * generating). Only ids that belong to the room's default selection are
+ * honored, the default order is preserved, and the result is still capped. If
+ * the filter would leave nothing, the full default selection is returned so a
+ * redesign is never grounded in zero products.
  */
-export function getProductsForRoom(roomTypeId: string): Product[] {
+export function getProductsForRoom(
+  roomTypeId: string,
+  selectedProductIds?: string[],
+): Product[] {
   const eligible = PRODUCT_DATA.filter((p) => p.roomTypes.includes(roomTypeId));
 
   const byRole = new Map<string, Product>();
@@ -486,5 +496,13 @@ export function getProductsForRoom(roomTypeId: string): Product[] {
     ordered.push(remaining);
   }
 
-  return ordered.slice(0, MAX_PRODUCTS_PER_ROOM);
+  const defaultSelection = ordered.slice(0, MAX_PRODUCTS_PER_ROOM);
+
+  if (!selectedProductIds || selectedProductIds.length === 0) {
+    return defaultSelection;
+  }
+
+  const allowed = new Set(selectedProductIds);
+  const filtered = defaultSelection.filter((p) => allowed.has(p.id));
+  return filtered.length > 0 ? filtered : defaultSelection;
 }
