@@ -14,6 +14,9 @@ import { useListStyles, useListRooms, useCreateRedesign, StylePreset, RoomType }
 const ROOM_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
   "living-room": "tv",
   bedroom: "moon",
+  kitchen: "coffee",
+  "dining-room": "users",
+  "home-office": "briefcase",
 };
 
 export default function CreateScreen() {
@@ -386,10 +389,12 @@ const styles = StyleSheet.create({
   },
   roomsRow: {
     flexDirection: "row",
-    gap: 16,
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 16,
   },
   roomCard: {
-    flex: 1,
+    width: "48%",
     borderWidth: 1,
     paddingVertical: 20,
     alignItems: "center",
