@@ -156,17 +156,33 @@ const ROOM_ROLE_PRIORITY: Record<string, string[]> = {
     "coffee-table",
     "rug",
     "floor-lamp",
+    "wall-art",
     "accent-seating",
     "bookcase",
     "pendant",
   ],
-  bedroom: ["bed", "nightstand", "dresser", "table-lamp", "rug", "floor-lamp"],
+  bedroom: [
+    "bed",
+    "nightstand",
+    "wall-art",
+    "dresser",
+    "table-lamp",
+    "rug",
+    "floor-lamp",
+  ],
   kitchen: ["bar-stool", "open-shelf", "pendant", "cart"],
-  "dining-room": ["dining-table", "dining-chair", "pendant", "rug"],
-  "home-office": ["desk", "office-chair", "shelving", "task-lamp", "drawer-unit"],
+  "dining-room": ["dining-table", "dining-chair", "pendant", "wall-art", "rug"],
+  "home-office": [
+    "desk",
+    "office-chair",
+    "shelving",
+    "wall-art",
+    "task-lamp",
+    "drawer-unit",
+  ],
 };
 
-const MAX_PRODUCTS_PER_ROOM = 5;
+const MAX_PRODUCTS_PER_ROOM = 6;
 
 /**
  * Corrects coarse role/group classifications coming from the ingested seed.
@@ -187,6 +203,16 @@ function reclassifyProduct(p: Product): Product {
 
 function reclassifyAll(products: Product[]): Product[] {
   return products.map(reclassifyProduct);
+}
+
+/** Returns a new array with the products in random order (Fisher-Yates). */
+function shuffleProducts(products: Product[]): Product[] {
+  const copy = [...products];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+  }
+  return copy;
 }
 
 /** Public style list (without internal prompt hints). */
@@ -312,9 +338,15 @@ export function selectDecluttered(
   eligible: Product[],
   roomTypeId: string,
   selectedProductIds?: string[],
+  randomize = false,
 ): Product[] {
+  // For the very first generation (no user curation yet) we shuffle the pool so
+  // each role's representative piece varies run-to-run instead of always being
+  // the lowest-id product. Curation (selectedProductIds present) stays
+  // deterministic so the user's chosen pieces resolve consistently.
+  const pool = randomize ? shuffleProducts(eligible) : eligible;
   const byRole = new Map<string, Product>();
-  for (const p of eligible) {
+  for (const p of pool) {
     if (!byRole.has(p.role)) {
       byRole.set(p.role, p);
     }
@@ -356,5 +388,6 @@ export async function getProductsForRoom(
   selectedProductIds?: string[],
 ): Promise<Product[]> {
   const eligible = await getEligibleProductsForRoom(roomTypeId);
-  return selectDecluttered(eligible, roomTypeId, selectedProductIds);
+  const randomize = !selectedProductIds || selectedProductIds.length === 0;
+  return selectDecluttered(eligible, roomTypeId, selectedProductIds, randomize);
 }

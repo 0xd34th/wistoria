@@ -5,12 +5,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { ikeaImageUrl } from "@/lib/utils";
+import { ZoomableImageModal } from "@/components/ZoomableImageModal";
 import {
   useListProducts,
   getListProductsQueryKey,
@@ -55,6 +58,9 @@ export default function RedesignResultScreen() {
   const [showTags, setShowTags] = useState(false);
   const [workingProducts, setWorkingProducts] = useState<Product[]>(() => redesign?.products ?? []);
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
+  // When true the picker is open in "add" mode (no piece being replaced): the
+  // chosen product is appended to the collection instead of swapped in.
+  const [isAdding, setIsAdding] = useState(false);
   // Swap modal filters: a broad bucket (group, e.g. Lighting) with the option to
   // narrow to a specific category (role, e.g. Table Lamp). Defaults to the
   // swapped piece's own bucket so a lamp swap shows lamps, then lets the user
@@ -62,6 +68,8 @@ export default function RedesignResultScreen() {
   const [swapGroup, setSwapGroup] = useState<string | null>(null);
   const [swapRole, setSwapRole] = useState<string | null>(null);
   const [swapSearch, setSwapSearch] = useState("");
+  const [zoomVisible, setZoomVisible] = useState(false);
+  const [downloadState, setDownloadState] = useState<"idle" | "saving" | "done" | "error">("idle");
 
   const roomTypeId = redesign?.roomTypeId ?? "";
   const productsParams = { roomTypeId };
@@ -113,10 +121,26 @@ export default function RedesignResultScreen() {
   // piece's group so the user sees like-for-like options first (e.g. a lamp
   // swap shows the Lighting bucket), with the option to narrow further.
   const openSwap = (index: number) => {
+    setIsAdding(false);
     setSwapGroup(workingProducts[index]?.group ?? null);
     setSwapRole(null);
     setSwapSearch("");
     setSwapIndex(index);
+  };
+
+  // Open the picker in "add" mode: no piece is being replaced, so we show every
+  // bucket and let the user pick any category to append to their collection.
+  const openAdd = () => {
+    setSwapIndex(null);
+    setSwapGroup(null);
+    setSwapRole(null);
+    setSwapSearch("");
+    setIsAdding(true);
+  };
+
+  const closePicker = () => {
+    setSwapIndex(null);
+    setIsAdding(false);
   };
 
   // Switching broad bucket clears any narrow category drill-down.
@@ -150,11 +174,59 @@ export default function RedesignResultScreen() {
     }
   };
 
+  // Saves the currently shown image (original or redesigned). On web we trigger
+  // an anchor download of the data URI; on native we write the base64 to a cache
+  // file and save it into the device photo library (add-only permission).
+  const handleDownload = async () => {
+    if (!redesign || downloadState === "saving") return;
+    const base64 = showOriginal ? redesign.originalImage : redesign.redesignedImage;
+    if (!base64) return;
+    setDownloadState("saving");
+    try {
+      if (Platform.OS === "web") {
+        const doc = (globalThis as { document?: Document }).document;
+        if (!doc) throw new Error("No document available");
+        const link = doc.createElement("a");
+        link.href = `data:image/png;base64,${base64}`;
+        link.download = `wistoria-${redesign.id}.png`;
+        doc.body.appendChild(link);
+        link.click();
+        doc.body.removeChild(link);
+      } else {
+        const perm = await MediaLibrary.requestPermissionsAsync(true);
+        if (!perm.granted) {
+          setDownloadState("error");
+          setTimeout(() => setDownloadState("idle"), 2500);
+          return;
+        }
+        const fileUri = `${FileSystem.cacheDirectory}wistoria-${redesign.id}.png`;
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        await MediaLibrary.saveToLibraryAsync(fileUri);
+      }
+      setDownloadState("done");
+      setTimeout(() => setDownloadState("idle"), 2500);
+    } catch (e) {
+      console.error("Failed to save image", e);
+      setDownloadState("error");
+      setTimeout(() => setDownloadState("idle"), 2500);
+    }
+  };
+
   const removeProduct = (productId: string) => {
     setWorkingProducts((prev) => prev.filter((p) => p.id !== productId));
   };
 
   const chooseAlternative = (product: Product) => {
+    if (isAdding) {
+      // Append unless the piece is already in the collection (no duplicates).
+      setWorkingProducts((prev) =>
+        prev.some((p) => p.id === product.id) ? prev : [...prev, product],
+      );
+      closePicker();
+      return;
+    }
     if (swapIndex === null) return;
     setWorkingProducts((prev) => {
       const next = [...prev];
@@ -165,7 +237,7 @@ export default function RedesignResultScreen() {
       }
       return next;
     });
-    setSwapIndex(null);
+    closePicker();
   };
 
   const savedIds = redesign.products.map((p) => p.id).join(",");
@@ -216,18 +288,44 @@ export default function RedesignResultScreen() {
             <Pressable onPress={() => router.replace("/")} style={styles.navButton}>
               <Feather name="arrow-left" size={24} color="#ffffff" />
             </Pressable>
-            {!showOriginal && (
-              <Pressable
-                onPress={() => setShowTags((v) => !v)}
-                style={[
-                  styles.tagsToggle,
-                  showTags ? { backgroundColor: colors.primary } : { backgroundColor: "rgba(0,0,0,0.45)" },
-                ]}
-              >
-                <Feather name="tag" size={16} color="#ffffff" />
-                <Text style={styles.tagsToggleText}>{showTags ? "Hide tags" : "Shop the look"}</Text>
+            <View style={styles.navActions}>
+              {!showOriginal && (
+                <Pressable
+                  onPress={() => setShowTags((v) => !v)}
+                  style={[
+                    styles.tagsToggle,
+                    showTags ? { backgroundColor: colors.primary } : { backgroundColor: "rgba(0,0,0,0.45)" },
+                  ]}
+                >
+                  <Feather name="tag" size={16} color="#ffffff" />
+                  <Text style={styles.tagsToggleText}>{showTags ? "Hide tags" : "Shop the look"}</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={() => setZoomVisible(true)} style={styles.navButton}>
+                <Feather name="maximize-2" size={20} color="#ffffff" />
               </Pressable>
-            )}
+              <Pressable
+                onPress={handleDownload}
+                style={styles.navButton}
+                disabled={downloadState === "saving"}
+              >
+                {downloadState === "saving" ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Feather
+                    name={
+                      downloadState === "done"
+                        ? "check"
+                        : downloadState === "error"
+                          ? "alert-circle"
+                          : "download"
+                    }
+                    size={20}
+                    color="#ffffff"
+                  />
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <Image
@@ -300,6 +398,18 @@ export default function RedesignResultScreen() {
                 Add at least one piece back to regenerate your room.
               </Text>
             )}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.addPieceButton,
+                { borderColor: colors.primary, borderRadius: colors.radius },
+                pressed && { opacity: 0.6 },
+              ]}
+              onPress={openAdd}
+            >
+              <Feather name="plus" size={18} color={colors.primary} />
+              <Text style={[styles.addPieceText, { color: colors.primary }]}>Add a piece</Text>
+            </Pressable>
 
             <View style={styles.productsList}>
               {workingProducts.map((product, index) => (
@@ -386,10 +496,10 @@ export default function RedesignResultScreen() {
       )}
 
       <Modal
-        visible={swapIndex !== null}
+        visible={swapIndex !== null || isAdding}
         animationType="slide"
         transparent
-        onRequestClose={() => setSwapIndex(null)}
+        onRequestClose={closePicker}
       >
         <KeyboardAvoidingView
           style={styles.modalBackdrop}
@@ -398,14 +508,16 @@ export default function RedesignResultScreen() {
           <View style={[styles.modalSheet, { backgroundColor: colors.background, paddingBottom: insets.bottom || 24 }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Swap this piece</Text>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                  {isAdding ? "Add a piece" : "Swap this piece"}
+                </Text>
                 <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>
                   {swapTarget
                     ? `Showing ${(swapRole ? humanizeRole(swapRole) : swapGroup ?? "all").toLowerCase()} options. Pick a category or search.`
                     : "Pick a category or search for a piece."}
                 </Text>
               </View>
-              <Pressable onPress={() => setSwapIndex(null)} style={[styles.modalClose, { backgroundColor: colors.muted }]}>
+              <Pressable onPress={closePicker} style={[styles.modalClose, { backgroundColor: colors.muted }]}>
                 <Feather name="x" size={20} color={colors.foreground} />
               </Pressable>
             </View>
@@ -544,12 +656,17 @@ export default function RedesignResultScreen() {
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item: product }) => {
                   const inRoom = workingProducts.some((p) => p.id === product.id);
+                  // In add mode an in-room piece can't be added again, so disable
+                  // its row. In swap mode tapping it is still a valid swap.
+                  const disabled = isAdding && inRoom;
                   return (
                     <Pressable
+                      disabled={disabled}
                       style={({ pressed }) => [
                         styles.altRow,
                         { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card },
-                        pressed && { opacity: 0.85 },
+                        disabled && { opacity: 0.5 },
+                        pressed && !disabled && { opacity: 0.85 },
                       ]}
                       onPress={() => chooseAlternative(product)}
                     >
@@ -574,6 +691,12 @@ export default function RedesignResultScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <ZoomableImageModal
+        visible={zoomVisible}
+        uri={`data:image/png;base64,${showOriginal ? redesign.originalImage : redesign.redesignedImage}`}
+        onClose={() => setZoomVisible(false)}
+      />
     </View>
   );
 }
@@ -681,6 +804,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
+  navActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   toggleContainer: {
     position: "absolute",
     bottom: 24,
@@ -739,6 +867,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_500Medium",
     marginBottom: 16,
+  },
+  addPieceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  addPieceText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
   productsList: {
     gap: 20,

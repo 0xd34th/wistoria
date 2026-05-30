@@ -377,6 +377,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/lisabo-chair-ash-00457235/"
   },
   {
+    "id": "00465773",
+    "name": "KNOPPÄNG",
+    "category": "Frame with poster",
+    "color": "beige",
+    "price": 34.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/knoppaeng-frame-with-poster-garden__0771328_pe755690_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/knoppaeng-frame-with-poster-garden-00465773/"
+  },
+  {
     "id": "00466715",
     "name": "DYTÅG",
     "category": "Curtains, 1 pair",
@@ -905,6 +923,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/skogsduva-cushion-flower-shaped-white-00576790/"
   },
   {
+    "id": "00578906",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "blue",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-waterlilies-1916-19__1237264_pe917884_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-waterlilies-1916-19-00578906/"
+  },
+  {
     "id": "00579034",
     "name": "FJÄLLBO",
     "category": "TV unit",
@@ -1108,6 +1144,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/natthaeger-cushion-blue-tiger-00595331/"
   },
   {
+    "id": "00601921",
+    "name": "BLODFLÄDER",
+    "category": "Picture",
+    "color": "brown",
+    "price": 34.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/blodflaeder-picture-two-birds__1392148_pe966012_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/blodflaeder-picture-two-birds-00601921/"
+  },
+  {
     "id": "00602001",
     "name": "GREJSIMOJS",
     "category": "Rug, high pile",
@@ -1123,6 +1177,24 @@
     "group": "Rugs",
     "imageUrl": "https://www.ikea.com/us/en/images/products/grejsimojs-rug-high-pile-green__1450783_pe990412_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/grejsimojs-rug-high-pile-green-00602001/"
+  },
+  {
+    "id": "00602275",
+    "name": "BILD",
+    "category": "Poster",
+    "color": "blue",
+    "price": 9.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/bild-poster-forest-fun__1385561_pe963363_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/bild-poster-forest-fun-00602275/"
   },
   {
     "id": "00603005",
@@ -1201,6 +1273,24 @@
     "group": "Decor",
     "imageUrl": "https://www.ikea.com/us/en/images/products/daksjus-plant-pot-light-green__1375297_pe975253_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/daksjus-plant-pot-light-green-00609229/"
+  },
+  {
+    "id": "00617007",
+    "name": "GRÖNMES",
+    "category": "Picture",
+    "color": "beige",
+    "price": 19.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/groenmes-picture-butterfly__1434541_pe983584_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/groenmes-picture-butterfly-00617007/"
   },
   {
     "id": "00617564",
@@ -2034,6 +2124,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/hemnes-8-drawer-dresser-white-stain-10576191/"
   },
   {
+    "id": "10578897",
+    "name": "KNOPPÄNG",
+    "category": "Frame with poster",
+    "color": "beige",
+    "price": 34.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/knoppaeng-frame-with-poster-vintage-botanical-fruit-charts__1285836_pe933405_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/knoppaeng-frame-with-poster-vintage-botanical-fruit-charts-10578897/"
+  },
+  {
     "id": "10580070",
     "name": "ZEBRASÄV",
     "category": "Pendant lamp",
@@ -2159,6 +2267,24 @@
     "group": "Seating",
     "imageUrl": "https://www.ikea.com/us/en/images/products/centerhalv-office-chair-black__1408739_pe971989_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/centerhalv-office-chair-black-10601124/"
+  },
+  {
+    "id": "10601992",
+    "name": "BILD",
+    "category": "Poster",
+    "color": "beige",
+    "price": 4.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/bild-poster-strawberry-rabbit__1537463_pe1017092_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/bild-poster-strawberry-rabbit-10601992/"
   },
   {
     "id": "10602072",
@@ -2792,6 +2918,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/stoftmoln-led-ceiling-wall-lamp-smart-wireless-dimmable-warm-white-white-20505551/"
   },
   {
+    "id": "20518030",
+    "name": "GILLSTAD",
+    "category": "Wall decoration, set of 3",
+    "color": "beige",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/gillstad-wall-decoration-set-of-3-sedge-handmade__1110045_pe870334_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/gillstad-wall-decoration-set-of-3-sedge-handmade-20518030/"
+  },
+  {
     "id": "20520354",
     "name": "SKRUVBY",
     "category": "Bookcase",
@@ -3381,6 +3525,42 @@
     "buyUrl": "https://www.ikea.com/us/en/p/mossplym-floor-uplighter-reading-lamp-opal-glass-oak-20601246/"
   },
   {
+    "id": "20601915",
+    "name": "BLODFLÄDER",
+    "category": "Picture",
+    "color": "beige",
+    "price": 89.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/blodflaeder-picture-the-seine-at-giverny__1392143_pe966004_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/blodflaeder-picture-the-seine-at-giverny-20601915/"
+  },
+  {
+    "id": "20602000",
+    "name": "KNOPPÄNG",
+    "category": "Frame with poster, set of 8",
+    "color": "white",
+    "price": 69.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/knoppaeng-frame-with-poster-set-of-8-folk-tales__1392157_pe966019_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/knoppaeng-frame-with-poster-set-of-8-folk-tales-20602000/"
+  },
+  {
     "id": "20602137",
     "name": "BENGTA",
     "category": "Block-out curtain, 1 piece",
@@ -3537,6 +3717,24 @@
     "group": "Decor",
     "imageUrl": "https://www.ikea.com/us/en/images/products/daggkaprifol-mirror-dark-yellow__1460710_pe993989_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/daggkaprifol-mirror-dark-yellow-20617921/"
+  },
+  {
+    "id": "20619604",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "blue",
+    "price": 39.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-endelave-alkmaar__1446538_pe988622_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-endelave-alkmaar-20619604/"
   },
   {
     "id": "20623125",
@@ -4750,6 +4948,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/ljuster-led-night-light-white-40268756/"
   },
   {
+    "id": "40291766",
+    "name": "MOSSLANDA",
+    "category": "Picture ledge",
+    "color": "white",
+    "price": 9.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/mosslanda-picture-ledge-white__0634119_pe696315_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/mosslanda-picture-ledge-white-40291766/"
+  },
+  {
     "id": "40300662",
     "name": "BRIMNES",
     "category": "Cabinet with doors",
@@ -5016,6 +5232,24 @@
     "group": "Textiles",
     "imageUrl": "https://www.ikea.com/us/en/images/products/bymott-curtains-1-pair-white-beige-stripe-with-heading-tape__0972980_pe811833_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/bymott-curtains-1-pair-white-beige-stripe-with-heading-tape-40509968/"
+  },
+  {
+    "id": "40511358",
+    "name": "MÅLERÅS",
+    "category": "Picture ledge",
+    "color": "beige",
+    "price": 19.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/maleras-picture-ledge-bamboo__0689497_pe722996_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/maleras-picture-ledge-bamboo-40511358/"
   },
   {
     "id": "40521767",
@@ -5624,6 +5858,42 @@
     "group": "Beds",
     "imageUrl": "https://www.ikea.com/us/en/images/products/radmansoe-bed-frame-brown-walnut-effect__1397227_pe967509_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/radmansoe-bed-frame-brown-walnut-effect-40599172/"
+  },
+  {
+    "id": "40601919",
+    "name": "BLODFLÄDER",
+    "category": "Picture",
+    "color": "brown",
+    "price": 34.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/blodflaeder-picture-orange-flower__1392146_pe966010_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/blodflaeder-picture-orange-flower-40601919/"
+  },
+  {
+    "id": "40602018",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "beige",
+    "price": 59.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-swedish-sand-dunes__1385657_pe963379_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-swedish-sand-dunes-40602018/"
   },
   {
     "id": "40611094",
@@ -6505,6 +6775,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/sonhult-nesting-tables-set-of-2-yellow-birch-effect-50578555/"
   },
   {
+    "id": "50578904",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "blue",
+    "price": 49.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-the-starry-night-june-1889__1237251_pe917880_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-the-starry-night-june-1889-50578904/"
+  },
+  {
     "id": "50586027",
     "name": "MAJGULL",
     "category": "Black-out curtains, 1 pair",
@@ -6848,6 +7136,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/saltmyran-sofa-oereryd-gray-beige-50618518/"
   },
   {
+    "id": "50619607",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "pink",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-prismatic-passage__1446539_pe988623_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-prismatic-passage-50619607/"
+  },
+  {
     "id": "50620677",
     "name": "SKOGSTA",
     "category": "Bar stool with backrest",
@@ -7176,6 +7482,24 @@
     "group": "Lighting",
     "imageUrl": "https://www.ikea.com/us/en/images/products/upplyst-led-wall-lamp-heart-pink__0716265_pe730770_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/upplyst-led-wall-lamp-heart-pink-60440807/"
+  },
+  {
+    "id": "60446239",
+    "name": "MELLÖSA",
+    "category": "Picture ledge",
+    "color": "white",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/melloesa-picture-ledge-transparent__0689494_pe722995_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/melloesa-picture-ledge-transparent-60446239/"
   },
   {
     "id": "60447677",
@@ -7695,6 +8019,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/vildpersilja-cushion-cover-black-green-multicolor-floral-pattern-60582335/"
   },
   {
+    "id": "60585094",
+    "name": "RÖDALM",
+    "category": "Frame with poster",
+    "color": "brown",
+    "price": 34.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/roedalm-frame-with-poster-sunflowers__1313277_pe940106_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/roedalm-frame-with-poster-sunflowers-60585094/"
+  },
+  {
     "id": "60586258",
     "name": "BRÄNNBOLL",
     "category": "Open storage unit on casters",
@@ -7820,6 +8162,24 @@
     "group": "Seating",
     "imageUrl": "https://www.ikea.com/us/en/images/products/alhult-chair-beige-kabusa-light-beige__1403273_pe969296_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/alhult-chair-beige-kabusa-light-beige-60600773/"
+  },
+  {
+    "id": "60602140",
+    "name": "FISKBO",
+    "category": "Frame with poster",
+    "color": "beige",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/fiskbo-frame-with-poster-apple-game__1392155_pe966017_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/fiskbo-frame-with-poster-apple-game-60602140/"
   },
   {
     "id": "60603093",
@@ -8100,6 +8460,24 @@
     "group": "Storage",
     "imageUrl": "https://www.ikea.com/us/en/images/products/gersby-bookcase-white__0251910_pe390723_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/gersby-bookcase-white-70261131/"
+  },
+  {
+    "id": "70292104",
+    "name": "MOSSLANDA",
+    "category": "Picture ledge",
+    "color": "black",
+    "price": 19.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/mosslanda-picture-ledge-black__0634120_pe696314_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/mosslanda-picture-ledge-black-70292104/"
   },
   {
     "id": "70301537",
@@ -9056,6 +9434,42 @@
     "group": "Seating",
     "imageUrl": "https://www.ikea.com/us/en/images/products/norrmansoe-bench-outdoor-acacia__1369721_pe958277_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/norrmansoe-bench-outdoor-acacia-70586696/"
+  },
+  {
+    "id": "70586936",
+    "name": "MOSSLANDA",
+    "category": "Picture ledge",
+    "color": "brown",
+    "price": 12.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/mosslanda-picture-ledge-walnut-effect__1314690_pe940196_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/mosslanda-picture-ledge-walnut-effect-70586936/"
+  },
+  {
+    "id": "70586941",
+    "name": "MOSSLANDA",
+    "category": "Picture ledge",
+    "color": "beige",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/mosslanda-picture-ledge-oak-effect__1314694_pe940202_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/mosslanda-picture-ledge-oak-effect-70586941/"
   },
   {
     "id": "70589869",
@@ -10216,6 +10630,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/mudderverk-pendant-lamp-brass-opal-glass-80577700/"
   },
   {
+    "id": "80578912",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "brown",
+    "price": 39.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-vase-with-twelve-sunflowers__1239118_pe918778_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-vase-with-twelve-sunflowers-80578912/"
+  },
+  {
     "id": "80579327",
     "name": "FRYKSÅS",
     "category": "TV unit",
@@ -10470,6 +10902,24 @@
     "group": "Seating",
     "imageUrl": "https://www.ikea.com/us/en/images/products/kallsoe-storage-bench-gray__1413141_pe974179_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/kallsoe-storage-bench-gray-80599325/"
+  },
+  {
+    "id": "80601917",
+    "name": "BLODFLÄDER",
+    "category": "Picture",
+    "color": "blue",
+    "price": 49.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/blodflaeder-picture-nazare__1392151_pe966013_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/blodflaeder-picture-nazare-80601917/"
   },
   {
     "id": "80605294",
@@ -11299,6 +11749,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/baggebo-tv-unit-white-90565773/"
   },
   {
+    "id": "90567970",
+    "name": "PJÄTTERYD",
+    "category": "Picture, set of 9",
+    "color": "brown",
+    "price": 99.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-set-of-9-mist-in-the-forest__1193819_pe901646_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-set-of-9-mist-in-the-forest-90567970/"
+  },
+  {
     "id": "90569484",
     "name": "BRIMNES",
     "category": "TV unit",
@@ -11312,6 +11780,24 @@
     "group": "Storage",
     "imageUrl": "https://www.ikea.com/us/en/images/products/brimnes-tv-unit-black__0704609_pe725292_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/brimnes-tv-unit-black-90569484/"
+  },
+  {
+    "id": "90570656",
+    "name": "COLORADOGRAN",
+    "category": "Picture, set of 3",
+    "color": "green",
+    "price": 4.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/coloradogran-picture-set-of-3-colorful-adventures__1246045_pe921926_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/coloradogran-picture-set-of-3-colorful-adventures-90570656/"
   },
   {
     "id": "90574800",
@@ -11375,6 +11861,24 @@
     "group": "Storage",
     "imageUrl": "https://www.ikea.com/us/en/images/products/sundvik-wardrobe-white__0626568_pe692872_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/sundvik-wardrobe-white-90576700/"
+  },
+  {
+    "id": "90578902",
+    "name": "PJÄTTERYD",
+    "category": "Picture",
+    "color": "beige",
+    "price": 24.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pjaetteryd-picture-flowers-against-a-black-wall__1237263_pe917883_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pjaetteryd-picture-flowers-against-a-black-wall-90578902/"
   },
   {
     "id": "90583404",
@@ -11536,6 +12040,24 @@
     "buyUrl": "https://www.ikea.com/us/en/p/skivtofs-pendant-lamp-off-white-ceramic-90596784/"
   },
   {
+    "id": "90601993",
+    "name": "BILD",
+    "category": "Poster",
+    "color": "beige",
+    "price": 4.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/bild-poster-fig-plant__1385659_pe963380_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/bild-poster-fig-plant-90601993/"
+  },
+  {
     "id": "90603237",
     "name": "SANDLÖPARE",
     "category": "Stool cover",
@@ -11598,6 +12120,24 @@
     "group": "Storage",
     "imageUrl": "https://www.ikea.com/us/en/images/products/havsta-6-drawer-dresser-gray-beige__1426886_pe980054_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/havsta-6-drawer-dresser-gray-beige-90614523/"
+  },
+  {
+    "id": "90619610",
+    "name": "SANNAHED",
+    "category": "Frame with poster",
+    "color": "blue",
+    "price": 29.99,
+    "currency": "USD",
+    "roomTypes": [
+      "living-room",
+      "bedroom",
+      "dining-room",
+      "home-office"
+    ],
+    "role": "wall-art",
+    "group": "Wall Art",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/sannahed-frame-with-poster-blue-vase-with-flowers__1460702_pe993985_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/sannahed-frame-with-poster-blue-vase-with-flowers-90619610/"
   },
   {
     "id": "90621825",
@@ -13032,21 +13572,6 @@
     "buyUrl": "https://www.ikea.com/us/en/p/fryksas-ottoman-rattan-risane-natural-s49563164/"
   },
   {
-    "id": "s49564446",
-    "name": "PINNTORP / PINNTORP",
-    "category": "Table and 2 chairs",
-    "color": "brown",
-    "price": 309.99,
-    "currency": "USD",
-    "roomTypes": [
-      "dining-room"
-    ],
-    "role": "dining-table",
-    "group": "Tables & Desks",
-    "imageUrl": "https://www.ikea.com/us/en/images/products/pinntorp-pinntorp-table-and-2-chairs-light-brown-stained-white-stained-light-brown-stained__1301602_pe937495_s5.jpg",
-    "buyUrl": "https://www.ikea.com/us/en/p/pinntorp-pinntorp-table-and-2-chairs-light-brown-stained-white-stained-light-brown-stained-s49564446/"
-  },
-  {
     "id": "s49569444",
     "name": "KALLAX",
     "category": "TV storage combination",
@@ -13570,6 +14095,21 @@
     "group": "Tables & Desks",
     "imageUrl": "https://www.ikea.com/us/en/images/products/skogsta-nordviken-table-and-6-chairs-acacia-black__1097254_pe864851_s5.jpg",
     "buyUrl": "https://www.ikea.com/us/en/p/skogsta-nordviken-table-and-6-chairs-acacia-black-s69482690/"
+  },
+  {
+    "id": "s69484444",
+    "name": "PINNTORP / PINNTORP",
+    "category": "Table and 2 chairs",
+    "color": "beige",
+    "price": 289.99,
+    "currency": "USD",
+    "roomTypes": [
+      "dining-room"
+    ],
+    "role": "dining-table",
+    "group": "Tables & Desks",
+    "imageUrl": "https://www.ikea.com/us/en/images/products/pinntorp-pinntorp-table-and-2-chairs-light-brown-stained-white-stained-light-brown-stained__1139966_pe880605_s5.jpg",
+    "buyUrl": "https://www.ikea.com/us/en/p/pinntorp-pinntorp-table-and-2-chairs-light-brown-stained-white-stained-light-brown-stained-s69484444/"
   },
   {
     "id": "s69489639",

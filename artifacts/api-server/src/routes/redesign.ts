@@ -256,6 +256,11 @@ function buildPrompt(
       "RUG HANDLING: First completely REMOVE any rug or carpet already on the floor in the original photo. Then lay the new rug flat on the floor and reproduce its OWN true outline exactly as shown in its reference photo — round, oval, runner, animal-hide, or any irregular shape. Do NOT force the rug into a rectangle or square, and do NOT copy the shape, size, or position of the rug that was previously in the room. Match the reference rug's pattern, border, and proportions.",
     );
   }
+  if (products.some((p) => p.role === "wall-art")) {
+    lines.push(
+      "WALL ART HANDLING: Hang the artwork flat against a wall at natural eye level, where wall art would realistically go. Reproduce the EXACT image, scene, colors, and framing shown in its reference photo — do NOT invent a different picture or alter the artwork. Keep it upright and rectangular with believable scale and a subtle, realistic shadow; do not distort the wall or surrounding architecture to fit it.",
+    );
+  }
   lines.push(
     "You may update wall color, flooring finish, textiles, and lighting mood to suit the style, but the structural layout and viewpoint must remain exactly the same as the original.",
     "Photorealistic interior photography with accurate proportions and natural lighting. Do not add any text, watermarks, labels, logos, or people.",
@@ -340,7 +345,7 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
         references.map((r) => r.product),
       ),
       size: "auto",
-      quality: "medium",
+      quality: "low",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
@@ -432,7 +437,7 @@ router.post("/redesign", async (req, res) => {
         references.map((r) => r.product),
       ),
       size: "auto",
-      quality: "medium",
+      quality: "low",
     });
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";

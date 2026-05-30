@@ -36,7 +36,7 @@ describe("selectDecluttered", () => {
     p("pend-a", "pendant", ["living-room"]),
   ];
 
-  it("picks one piece per role, ordered by room priority and capped at 5", () => {
+  it("picks one piece per role, ordered by room priority and capped at 6", () => {
     const ids = selectDecluttered(livingRoom, "living-room").map((x) => x.id);
     expect(ids).toEqual([
       "sofa-a",
@@ -44,6 +44,7 @@ describe("selectDecluttered", () => {
       "rug-a",
       "lamp-a",
       "chair-a",
+      "book-a",
     ]);
   });
 

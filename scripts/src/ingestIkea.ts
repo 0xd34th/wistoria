@@ -85,6 +85,11 @@ const SEARCH_TERMS = [
   "room divider",
   "vanity",
   "makeup table",
+  "wall art",
+  "poster",
+  "picture",
+  "art print",
+  "wall decoration",
 ];
 
 interface RawColor {
@@ -179,6 +184,19 @@ const ROLE_RULES: { role: string; match: string[] }[] = [
   { role: "table", match: ["table"] },
   { role: "chair", match: ["chair"] },
   { role: "lamp", match: ["lamp", "light"] },
+  // Wall art comes after the lamp rule so "picture light" classifies as a lamp,
+  // while plain "Picture" / "Poster" / "Wall decoration" fall through to here.
+  {
+    role: "wall-art",
+    match: [
+      "picture",
+      "poster",
+      "wall decoration",
+      "decoration for wall",
+      "art print",
+      "artwork",
+    ],
+  },
 ];
 
 /** role -> broad group. Generic roles fall back to keyword matching. */
@@ -218,6 +236,7 @@ const ROLE_GROUP: Record<string, string> = {
   cushion: "Textiles",
   mirror: "Decor",
   plant: "Decor",
+  "wall-art": "Wall Art",
 };
 
 const GROUP_KEYWORDS: { group: string; match: string[] }[] = [
@@ -252,6 +271,10 @@ const GROUP_KEYWORDS: { group: string; match: string[] }[] = [
       "rack",
       "storage",
     ],
+  },
+  {
+    group: "Wall Art",
+    match: ["picture", "poster", "wall decoration", "art print", "artwork"],
   },
   { group: "Tables & Desks", match: ["table", "desk"] },
   { group: "Rugs", match: ["rug", "carpet"] },
@@ -298,6 +321,7 @@ const ROLE_ROOMS: Record<string, string[]> = {
   curtains: [ROOMS.living, ROOMS.bedroom],
   cushion: [ROOMS.living, ROOMS.bedroom],
   plant: [ROOMS.living, ROOMS.bedroom],
+  "wall-art": [ROOMS.living, ROOMS.bedroom, ROOMS.dining, ROOMS.office],
 };
 
 function classifyRole(blob: string): string {
@@ -333,6 +357,8 @@ function classifyRooms(role: string, group: string): string[] {
       return [ROOMS.bedroom];
     case "Rugs":
       return [ROOMS.living, ROOMS.bedroom, ROOMS.dining];
+    case "Wall Art":
+      return [ROOMS.living, ROOMS.bedroom, ROOMS.dining, ROOMS.office];
     case "Textiles":
     case "Decor":
       return [ROOMS.living, ROOMS.bedroom];
