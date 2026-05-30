@@ -10,7 +10,9 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/scripts run ingest:ikea` — re-ingest the IKEA catalog from IKEA's public search endpoint into `artifacts/api-server/src/data/ikeaSeed.json`
+- `pnpm --filter @workspace/scripts run seed:revenuecat` — (re)create the RevenueCat products, entitlement, and offering. Idempotent-ish: re-running creates fresh resources; only run when intentionally provisioning. Prints the public API keys + IDs at the end.
 - Required secret: `OPENAI_API_KEY` (user-provided; used directly, not the Replit AI Integrations proxy)
+- RevenueCat env vars (already set, public client keys — not secrets): `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY`, `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, plus `REVENUECAT_PROJECT_ID` / `REVENUECAT_TEST_STORE_APP_ID` / `REVENUECAT_APPLE_APP_STORE_APP_ID` / `REVENUECAT_GOOGLE_PLAY_STORE_APP_ID`.
 
 ## Stack
 
@@ -34,6 +36,8 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - Mobile screens: `artifacts/mobile/app/` (`index.tsx` home, `create.tsx`, `redesign/[id].tsx`)
 - AsyncStorage context: `artifacts/mobile/hooks/useSavedRedesigns.tsx`
 - Theme tokens: `artifacts/mobile/constants/colors.ts` (terracotta + sage palette)
+- Subscriptions (RevenueCat): `artifacts/mobile/lib/revenuecat.tsx` (`SubscriptionProvider`/`useSubscription`, `initializeRevenueCat`, entitlement `"pro"`, `isRevenueCatTestMode`), `artifacts/mobile/hooks/useFreeUsage.tsx` (free-quota counter), `artifacts/mobile/components/Paywall.tsx` (paywall modal).
+- RevenueCat provisioning: `scripts/src/revenueCatClient.ts` (`getUncachableRevenueCatClient` via the Replit connector proxy) + `scripts/src/seedRevenueCat.ts` (`seed:revenuecat`).
 
 ## Architecture decisions
 
@@ -43,11 +47,12 @@ Wistoria is an Expo mobile app where a user photographs their room, picks a styl
 - `/redesign` accepts base64 image + styleId, prompts the image model with the catalog products, and returns the redesigned image (base64) plus the grounding products. Body limit raised to 25mb for image payloads. The prompt is written to keep the room's layout/architecture/perspective IDENTICAL and only renovate with the catalog's IKEA pieces.
 - Mobile navigates with `useRouter().push()` rather than `<Link asChild>` — on web, `Link asChild` + `Pressable` with array styles crashes react-native-web (array style reaches a raw `<a>`).
 - The app reaches the API via `setBaseUrl(https://${EXPO_PUBLIC_DOMAIN})`; relative asset paths from the API are made absolute with `lib/utils.ts#getAssetUrl`.
+- Monetization is RevenueCat cross-store (Apple + Google), entitlement `"pro"`. Pricing: Free = 1 redesign per device; Wistoria Pro = unlimited. Monthly $9.99 / Annual $59.99 under offering `default` (`$rc_monthly` + `$rc_annual`). Prices in the paywall are ALWAYS derived from `package.product.priceString`/`.price` — never hardcoded. The free counter (`useFreeUsage`, key `@wistoria_free_redesigns_used`) is monotonic and never decremented, so deleting saved redesigns cannot farm more free generations. `initializeRevenueCat()` runs at module scope in `_layout.tsx` inside try/catch; the tree is wrapped with `SubscriptionProvider` + `FreeUsageProvider` (inside `QueryClientProvider`, since both use react-query/AsyncStorage). In Test Store mode (`isRevenueCatTestMode()`: dev, web, or Expo Go) the paywall shows a custom in-component confirm overlay instead of `Alert.alert`.
 
 ## Product
 
-- Home: gallery of saved redesigns (AsyncStorage) or an empty state.
-- Create: capture/upload a room photo, choose a style, generate (20-70s).
+- Home: gallery of saved redesigns (AsyncStorage) or an empty state, plus a "Go Pro"/"Pro" pill in the header that opens the paywall (also the Restore Purchases entry point).
+- Create: capture/upload a room photo, choose a style, generate (20-70s). Generation is gated: non-subscribers who have used their free redesign see the paywall instead.
 - Result: before/after toggle (Canvas/Curated) of the room, plus a shoppable IKEA product list (each opens the real IKEA product page in the browser). There are no on-image overlay tags — they couldn't be anchored to the actual furniture positions, so the product list below the image is the single source of truth. The shown image can be opened fullscreen with pinch/pan/double-tap zoom (`components/ZoomableImageModal.tsx`) and downloaded/saved (web anchor download; native `expo-file-system/legacy` write + `expo-media-library` save). The Collection supports Swap (replace a piece), Remove, and Add a piece (open the picker in "add" mode to append any eligible product — works even after removing everything).
 
 ## User preferences

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,27 +7,58 @@ import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
+import { useSubscription } from "@/lib/revenuecat";
+import { Paywall } from "@/components/Paywall";
 
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { redesigns, isLoading } = useSavedRedesigns();
+  const { isSubscribed } = useSubscription();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Paywall visible={showPaywall} onClose={() => setShowPaywall(false)} />
       <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 16 }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>Wistoria</Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.addButton,
-            { backgroundColor: colors.primary },
-            pressed && { opacity: 0.8 }
-          ]}
-          onPress={() => router.push("/create")}
-        >
-          <Feather name="plus" size={24} color={colors.primaryForeground} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.proButton,
+              {
+                backgroundColor: isSubscribed ? colors.secondary : colors.accent,
+              },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => setShowPaywall(true)}
+          >
+            <Feather
+              name={isSubscribed ? "check-circle" : "zap"}
+              size={15}
+              color={isSubscribed ? colors.secondaryForeground : colors.primary}
+            />
+            <Text
+              style={[
+                styles.proButtonText,
+                { color: isSubscribed ? colors.secondaryForeground : colors.primary },
+              ]}
+            >
+              {isSubscribed ? "Pro" : "Go Pro"}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButton,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8 }
+            ]}
+            onPress={() => router.push("/create")}
+          >
+            <Feather name="plus" size={24} color={colors.primaryForeground} />
+          </Pressable>
+        </View>
       </View>
 
       {isLoading ? (
@@ -103,6 +134,23 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1.2,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  proButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 20,
+  },
+  proButtonText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   addButton: {
     width: 48,

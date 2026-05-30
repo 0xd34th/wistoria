@@ -10,6 +10,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
+import { useFreeUsage } from "@/hooks/useFreeUsage";
+import { useSubscription } from "@/lib/revenuecat";
+import { Paywall } from "@/components/Paywall";
 import { getAssetUrl } from "@/lib/utils";
 import { useListStyles, useListRooms, getListRedesignsQueryKey, useCreateRedesign, StylePreset, RoomType, Redesign } from "@workspace/api-client-react";
 
@@ -27,11 +30,18 @@ export default function CreateScreen() {
   const router = useRouter();
   const { deviceId } = useSavedRedesigns();
   const queryClient = useQueryClient();
+  const { isSubscribed, isCustomerInfoLoading } = useSubscription();
+  const { hasFreeRedesign, incrementFreeUsed, isLoaded: isFreeUsageLoaded } = useFreeUsage();
+
+  // Entitlement + quota must be hydrated before we can gate correctly, otherwise
+  // a cold start could mis-classify a subscriber or an exhausted free user.
+  const isAccessReady = !isCustomerInfoLoading && isFreeUsageLoaded;
 
   const { data: stylesList, isLoading: isLoadingStyles } = useListStyles();
   const { data: roomsList, isLoading: isLoadingRooms } = useListRooms();
   const { mutateAsync: createRedesign, isPending: isGenerating, error } = useCreateRedesign();
 
+  const [showPaywall, setShowPaywall] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
@@ -78,6 +88,15 @@ export default function CreateScreen() {
 
   const handleGenerate = async () => {
     if (!imageBase64 || !selectedStyleId || !selectedRoomTypeId || !deviceId) return;
+    // Don't gate until we actually know the user's entitlement and quota.
+    if (!isAccessReady) return;
+
+    // Gate generation: subscribers are unlimited; everyone else gets a single
+    // free redesign before the paywall.
+    if (!isSubscribed && !hasFreeRedesign) {
+      setShowPaywall(true);
+      return;
+    }
 
     try {
       const result = await createRedesign({
@@ -88,6 +107,11 @@ export default function CreateScreen() {
           deviceId,
         },
       });
+
+      // Only non-subscribers consume their free quota.
+      if (!isSubscribed) {
+        await incrementFreeUsed();
+      }
 
       // Seed the cache so the result screen can read the new design immediately,
       // then refresh in the background.
@@ -121,6 +145,11 @@ export default function CreateScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Paywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchased={() => setShowPaywall(false)}
+      />
       <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 16 }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="chevron-down" size={28} color={colors.foreground} />
@@ -273,10 +302,10 @@ export default function CreateScreen() {
           style={({ pressed }) => [
             styles.generateButton,
             { backgroundColor: colors.primary },
-            (!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId) && { opacity: 0.4 },
-            pressed && imageUri && selectedRoomTypeId && selectedStyleId && deviceId && { transform: [{ scale: 0.98 }] }
+            (!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId || !isAccessReady) && { opacity: 0.4 },
+            pressed && imageUri && selectedRoomTypeId && selectedStyleId && deviceId && isAccessReady && { transform: [{ scale: 0.98 }] }
           ]}
-          disabled={!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId || isGenerating}
+          disabled={!imageUri || !selectedRoomTypeId || !selectedStyleId || !deviceId || isGenerating || !isAccessReady}
           onPress={handleGenerate}
         >
           <Text style={[styles.generateButtonText, { color: colors.primaryForeground }]}>
