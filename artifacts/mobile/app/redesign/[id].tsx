@@ -25,14 +25,6 @@ import {
 
 const { width } = Dimensions.get("window");
 
-const TAG_POSITIONS = [
-  { top: "10%", left: "4%" },
-  { top: "20%", right: "4%" },
-  { top: "40%", right: "4%" },
-  { bottom: "28%", left: "4%" },
-  { bottom: "16%", right: "4%" },
-] as const;
-
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
 // Turns an internal role id (e.g. "floor-lamp") into a human label ("Floor lamp")
@@ -55,7 +47,6 @@ export default function RedesignResultScreen() {
   const redesign = getRedesign(id);
 
   const [showOriginal, setShowOriginal] = useState(false);
-  const [showTags, setShowTags] = useState(false);
   const [workingProducts, setWorkingProducts] = useState<Product[]>(() => redesign?.products ?? []);
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
   // When true the picker is open in "add" mode (no piece being replaced): the
@@ -289,18 +280,6 @@ export default function RedesignResultScreen() {
               <Feather name="arrow-left" size={24} color="#ffffff" />
             </Pressable>
             <View style={styles.navActions}>
-              {!showOriginal && (
-                <Pressable
-                  onPress={() => setShowTags((v) => !v)}
-                  style={[
-                    styles.tagsToggle,
-                    showTags ? { backgroundColor: colors.primary } : { backgroundColor: "rgba(0,0,0,0.45)" },
-                  ]}
-                >
-                  <Feather name="tag" size={16} color="#ffffff" />
-                  <Text style={styles.tagsToggleText}>{showTags ? "Hide tags" : "Shop the look"}</Text>
-                </Pressable>
-              )}
               <Pressable onPress={() => setZoomVisible(true)} style={styles.navButton}>
                 <Feather name="maximize-2" size={20} color="#ffffff" />
               </Pressable>
@@ -333,26 +312,6 @@ export default function RedesignResultScreen() {
             style={styles.mainImage}
             resizeMode="cover"
           />
-
-          {!showOriginal && showTags && (
-            <View style={styles.tagsLayer} pointerEvents="box-none">
-              {redesign.products.slice(0, TAG_POSITIONS.length).map((product, i) => (
-                <Pressable
-                  key={product.id}
-                  style={[styles.tag, TAG_POSITIONS[i], { backgroundColor: colors.card }]}
-                  onPress={() => openBuyLink(product.buyUrl)}
-                >
-                  <View style={styles.ikeaBadge}>
-                    <Text style={styles.ikeaBadgeText}>IKEA</Text>
-                  </View>
-                  <Text style={[styles.tagName, { color: colors.foreground }]} numberOfLines={1}>
-                    {product.name}
-                  </Text>
-                  <Text style={[styles.tagPrice, { color: colors.foreground }]}>{formatPrice(product.price)}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
 
           <View style={styles.toggleContainer}>
             <Pressable
@@ -729,47 +688,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  tagsToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    height: 40,
-    borderRadius: 100,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  tagsToggleText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  tagsLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 5,
-  },
-  tag: {
-    position: "absolute",
-    flexDirection: "row",
-    alignItems: "center",
-    maxWidth: 175,
-    paddingVertical: 5,
-    paddingLeft: 5,
-    paddingRight: 9,
-    borderRadius: 999,
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
-  },
   ikeaBadge: {
     backgroundColor: "#0058A3",
     paddingHorizontal: 5,
@@ -781,16 +699,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.3,
-  },
-  tagName: {
-    flexShrink: 1,
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.2,
-  },
-  tagPrice: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
   },
   navButton: {
     width: 48,
