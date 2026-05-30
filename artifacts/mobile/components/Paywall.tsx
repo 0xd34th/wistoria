@@ -18,9 +18,10 @@ import {
   isRevenueCatTestMode,
   REVENUECAT_ENTITLEMENT_IDENTIFIER,
 } from "@/lib/revenuecat";
+import { PRO_DAILY_LIMIT } from "@/hooks/useDailyUsage";
 
 const BENEFITS = [
-  "Unlimited room redesigns",
+  `Up to ${PRO_DAILY_LIMIT} room redesigns every day`,
   "Every design style, unlocked",
   "Swap, add, and curate real IKEA pieces",
   "Full-resolution downloads to save and share",
@@ -146,7 +147,7 @@ export function Paywall({
           </View>
 
           <Text style={[styles.title, { color: colors.foreground }]}>
-            Redesign every room, without limits.
+            Redesign your space, every day.
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             Go Pro to keep reimagining your space with real, shoppable IKEA furniture.

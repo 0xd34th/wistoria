@@ -38,3 +38,22 @@ the workspace preview the app always runs against the RevenueCat Test Store
 rather than `Alert.alert`. The seed script's products/entitlement/offering are
 created fresh each run — only run `seed:revenuecat` when intentionally
 provisioning.
+
+## Pro is daily-capped, not unlimited (and caps are client-side)
+Pro entitlement is NOT unlimited: it is `PRO_DAILY_LIMIT` (currently 5) redesigns
+per local calendar day (`useDailyUsage`, key `@wistoria_pro_daily_used`, stores
+`{date,count}`, resets on date change). Free stays 1/device lifetime.
+
+**Why:** every redesign calls gpt-image-2 edit (~$0.04-0.05/run — reference
+images bill at HIGH fidelity regardless of output `quality`), so an uncapped Pro
+plan can cost more than the $9.99/mo subscription. 5/day (~150/mo) is roughly
+break-even worst case and profitable in normal use.
+
+**How to apply:** gate BOTH create AND regenerate identically — both are paid
+generations (free = 1 lifetime across both; Pro = daily cap across both). Persist
+the quota BEFORE setState and ONLY after a successful generation. Exhausted free
+→ paywall; Pro at cap → inline notice (not the paywall). Caps are deliberately
+CLIENT-SIDE: the app is anonymous/client-trust and `deviceId` is client-supplied,
+so a server check keyed by `deviceId` is equally bypassable; real anti-abuse
+needs backend entitlement verification (out of scope). Do not "upgrade" this to a
+server check without also adding auth-level entitlement verification.

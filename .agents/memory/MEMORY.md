@@ -1,3 +1,3 @@
 - [OpenAI image edit (gpt-image-2)](openai-image-edit.md) — SDK types lie about params; restart api-server after edits; high quality trips the ~120s proxy timeout.
 - [IKEA catalog classification](ikea-catalog.md) — ingest role/group is coarse; fix at read-time in `reclassifyProduct()`; ROLE_RULES order matters (wall-art after lamp).
-- [RevenueCat subscription gating](revenuecat-subscriptions.md) — gate only after entitlement + free-quota hydrate; await quota write; restore checks "pro" specifically; web/Expo Go = Test Store.
+- [RevenueCat subscription gating](revenuecat-subscriptions.md) — gate only after entitlement + free-quota hydrate; await quota write; restore checks "pro"; web/Expo Go = Test Store; Pro is DAILY-capped (not unlimited, client-side) covering create+regenerate.

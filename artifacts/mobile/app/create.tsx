@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { useFreeUsage } from "@/hooks/useFreeUsage";
+import { useDailyUsage, PRO_DAILY_LIMIT } from "@/hooks/useDailyUsage";
 import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { getAssetUrl } from "@/lib/utils";
@@ -32,16 +33,18 @@ export default function CreateScreen() {
   const queryClient = useQueryClient();
   const { isSubscribed, isCustomerInfoLoading } = useSubscription();
   const { hasFreeRedesign, incrementFreeUsed, isLoaded: isFreeUsageLoaded } = useFreeUsage();
+  const { hasProRedesignToday, incrementProDaily, isLoaded: isDailyLoaded } = useDailyUsage();
 
   // Entitlement + quota must be hydrated before we can gate correctly, otherwise
   // a cold start could mis-classify a subscriber or an exhausted free user.
-  const isAccessReady = !isCustomerInfoLoading && isFreeUsageLoaded;
+  const isAccessReady = !isCustomerInfoLoading && isFreeUsageLoaded && isDailyLoaded;
 
   const { data: stylesList, isLoading: isLoadingStyles } = useListStyles();
   const { data: roomsList, isLoading: isLoadingRooms } = useListRooms();
   const { mutateAsync: createRedesign, isPending: isGenerating, error } = useCreateRedesign();
 
   const [showPaywall, setShowPaywall] = useState(false);
+  const [dailyLimitHit, setDailyLimitHit] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
@@ -91,10 +94,15 @@ export default function CreateScreen() {
     // Don't gate until we actually know the user's entitlement and quota.
     if (!isAccessReady) return;
 
-    // Gate generation: subscribers are unlimited; everyone else gets a single
-    // free redesign before the paywall.
+    // Gate generation: non-subscribers get a single free redesign before the
+    // paywall; subscribers get a generous daily cap (each generation costs
+    // money) and see an inline notice — not the paywall — once it's reached.
     if (!isSubscribed && !hasFreeRedesign) {
       setShowPaywall(true);
+      return;
+    }
+    if (isSubscribed && !hasProRedesignToday) {
+      setDailyLimitHit(true);
       return;
     }
 
@@ -108,8 +116,11 @@ export default function CreateScreen() {
         },
       });
 
-      // Only non-subscribers consume their free quota.
-      if (!isSubscribed) {
+      // Consume the appropriate quota: subscribers burn one of their daily
+      // redesigns, everyone else burns their single free redesign.
+      if (isSubscribed) {
+        await incrementProDaily();
+      } else {
         await incrementFreeUsed();
       }
 
@@ -288,6 +299,15 @@ export default function CreateScreen() {
             </View>
           )}
         </Animated.View>
+
+        {dailyLimitHit && (
+          <Animated.View entering={SlideInUp} style={[styles.errorContainer, { backgroundColor: colors.primary + '15' }]}>
+            <Feather name="clock" size={20} color={colors.primary} />
+            <Text style={[styles.errorText, { color: colors.primary }]}>
+              You've used all {PRO_DAILY_LIMIT} Pro redesigns for today. Your limit resets tomorrow.
+            </Text>
+          </Animated.View>
+        )}
 
         {error && (
           <Animated.View entering={SlideInUp} style={[styles.errorContainer, { backgroundColor: colors.destructive + '15' }]}>

@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { SavedRedesignsProvider } from "@/hooks/useSavedRedesigns";
 import { FreeUsageProvider } from "@/hooks/useFreeUsage";
+import { DailyUsageProvider } from "@/hooks/useDailyUsage";
 import { SubscriptionProvider, initializeRevenueCat } from "@/lib/revenuecat";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -74,9 +75,11 @@ export default function RootLayout() {
             <KeyboardProvider>
               <SubscriptionProvider>
                 <FreeUsageProvider>
-                  <SavedRedesignsProvider>
-                    <RootLayoutNav />
-                  </SavedRedesignsProvider>
+                  <DailyUsageProvider>
+                    <SavedRedesignsProvider>
+                      <RootLayoutNav />
+                    </SavedRedesignsProvider>
+                  </DailyUsageProvider>
                 </FreeUsageProvider>
               </SubscriptionProvider>
             </KeyboardProvider>

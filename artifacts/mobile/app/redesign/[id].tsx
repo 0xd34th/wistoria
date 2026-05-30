@@ -12,6 +12,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
+import { useFreeUsage } from "@/hooks/useFreeUsage";
+import { useDailyUsage, PRO_DAILY_LIMIT } from "@/hooks/useDailyUsage";
+import { useSubscription } from "@/lib/revenuecat";
+import { Paywall } from "@/components/Paywall";
 import { ikeaImageUrl } from "@/lib/utils";
 import { ZoomableImageModal } from "@/components/ZoomableImageModal";
 import {
@@ -43,6 +47,14 @@ export default function RedesignResultScreen() {
   const { getRedesign, deviceId } = useSavedRedesigns();
   const queryClient = useQueryClient();
   const { mutateAsync: regenerate, isPending: isRegenerating } = useRegenerateRedesign();
+  const { isSubscribed, isCustomerInfoLoading } = useSubscription();
+  const { hasFreeRedesign, incrementFreeUsed, isLoaded: isFreeUsageLoaded } = useFreeUsage();
+  const { hasProRedesignToday, incrementProDaily, isLoaded: isDailyLoaded } = useDailyUsage();
+
+  // Each regeneration is another paid generation, so it is gated by the same
+  // quotas as the initial create: subscribers get a daily cap, everyone else a
+  // single lifetime free redesign.
+  const isAccessReady = !isCustomerInfoLoading && isFreeUsageLoaded && isDailyLoaded;
 
   const redesign = getRedesign(id);
 
@@ -61,6 +73,8 @@ export default function RedesignResultScreen() {
   const [swapSearch, setSwapSearch] = useState("");
   const [zoomVisible, setZoomVisible] = useState(false);
   const [downloadState, setDownloadState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [dailyLimitHit, setDailyLimitHit] = useState(false);
 
   const roomTypeId = redesign?.roomTypeId ?? "";
   const productsParams = { roomTypeId };
@@ -234,15 +248,35 @@ export default function RedesignResultScreen() {
   const savedIds = redesign.products.map((p) => p.id).join(",");
   const workingIds = workingProducts.map((p) => p.id).join(",");
   const isDirty = savedIds !== workingIds;
-  const canRegenerate = isDirty && workingProducts.length > 0 && !!deviceId && !isRegenerating;
+  const canRegenerate = isDirty && workingProducts.length > 0 && !!deviceId && !isRegenerating && isAccessReady;
 
   const handleRegenerate = async () => {
     if (!deviceId || workingProducts.length === 0) return;
+    if (!isAccessReady) return;
+
+    // Gate the paid regeneration with the same quotas as create.
+    if (!isSubscribed && !hasFreeRedesign) {
+      setShowPaywall(true);
+      return;
+    }
+    if (isSubscribed && !hasProRedesignToday) {
+      setDailyLimitHit(true);
+      return;
+    }
+
     try {
       const updated = await regenerate({
         id,
         data: { deviceId, productIds: workingProducts.map((p) => p.id) },
       });
+
+      // Consume the appropriate quota only after a successful generation.
+      if (isSubscribed) {
+        await incrementProDaily();
+      } else {
+        await incrementFreeUsed();
+      }
+
       const listKey = getListRedesignsQueryKey({ deviceId });
       queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
         prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
@@ -272,6 +306,11 @@ export default function RedesignResultScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Paywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchased={() => setShowPaywall(false)}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: (insets.bottom || 24) + (isDirty ? 110 : 24) }} showsVerticalScrollIndicator={false}>
 
         <View style={styles.imageSection}>
@@ -438,6 +477,14 @@ export default function RedesignResultScreen() {
           entering={FadeInDown}
           style={[styles.footer, { paddingBottom: insets.bottom || 24, borderTopColor: colors.border, backgroundColor: colors.card }]}
         >
+          {dailyLimitHit && (
+            <View style={styles.dailyNotice}>
+              <Feather name="clock" size={16} color={colors.primary} />
+              <Text style={[styles.dailyNoticeText, { color: colors.primary }]}>
+                You've used all {PRO_DAILY_LIMIT} Pro redesigns for today. Your limit resets tomorrow.
+              </Text>
+            </View>
+          )}
           <Pressable
             style={({ pressed }) => [
               styles.regenButton,
@@ -886,6 +933,17 @@ const styles = StyleSheet.create({
   regenButtonText: {
     fontSize: 18,
     fontFamily: "Inter_600SemiBold",
+  },
+  dailyNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  dailyNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
   },
   regenIconWrap: {
     width: 80,
