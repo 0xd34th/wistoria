@@ -6,17 +6,20 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FAFAF8"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.wistoria.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.wistoria.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,7 +31,21 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Wistoria to access your photos to redesign your rooms.",
+          "cameraPermission": "Allow Wistoria to use your camera to take photos of your rooms."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Wistoria to save redesigned room photos to your library.",
+          "savePhotosPermission": "Allow Wistoria to save redesigned room photos."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
