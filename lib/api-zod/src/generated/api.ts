@@ -104,7 +104,7 @@ export const ListRedesignsResponse = zod.array(ListRedesignsResponseItem)
 
 
 /**
- * Re-runs the AI redesign for an existing saved design using the user's curated product selection, updates the saved design in place, and returns it.
+ * Validates the request synchronously then starts a background AI regeneration job. Returns a jobId immediately (202). Poll GET /jobs/{jobId} for completion.
  * @summary Regenerate a saved redesign with a curated set of pieces
  */
 export const RegenerateRedesignParams = zod.object({
@@ -117,34 +117,9 @@ export const RegenerateRedesignBody = zod.object({
   "productIds": zod.array(zod.string()).describe('The curated set of product ids to ground the regenerated room in.')
 })
 
-export const RegenerateRedesignResponse = zod.object({
-  "id": zod.string(),
-  "createdAt": zod.number().describe('Creation time as epoch milliseconds.'),
-  "deviceId": zod.string(),
-  "styleId": zod.string(),
-  "styleName": zod.string(),
-  "roomTypeId": zod.string(),
-  "roomName": zod.string(),
-  "originalImage": zod.string().describe('Base64-encoded original room photo.'),
-  "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
-  "products": zod.array(zod.object({
-  "id": zod.string(),
-  "name": zod.string(),
-  "category": zod.string(),
-  "color": zod.string(),
-  "price": zod.number(),
-  "currency": zod.string(),
-  "roomTypes": zod.array(zod.string()).describe('Room type ids this product is eligible for.'),
-  "role": zod.string().describe('Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.'),
-  "group": zod.string().describe('Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.'),
-  "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
-  "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
-}))
-})
-
 
 /**
- * Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
+ * Validates the request synchronously then starts a background AI redesign job. Returns a jobId immediately (202). Poll GET /jobs/{jobId} for completion.
  * @summary Redesign a room photo
  */
 export const CreateRedesignBody = zod.object({
@@ -156,7 +131,18 @@ export const CreateRedesignBody = zod.object({
   "productIds": zod.array(zod.string()).optional().describe('Optional subset of the room\'s auto-selected product ids to include. When omitted or empty, the server\'s default de-cluttered selection is used.')
 })
 
-export const CreateRedesignResponse = zod.object({
+
+/**
+ * Returns the current status of an async redesign or regeneration job. Poll every 2 seconds until status is "done" or "failed". Jobs expire after 2 hours.
+ * @summary Poll async redesign job status
+ */
+export const GetJobParams = zod.object({
+  "jobId": zod.coerce.string()
+})
+
+export const GetJobResponse = zod.object({
+  "status": zod.enum(['pending', 'done', 'failed']).describe('Current job state.'),
+  "redesign": zod.object({
   "id": zod.string(),
   "createdAt": zod.number().describe('Creation time as epoch milliseconds.'),
   "deviceId": zod.string(),
@@ -179,6 +165,8 @@ export const CreateRedesignResponse = zod.object({
   "imageUrl": zod.string().describe('Relative URL path to the product image (served by the API).'),
   "buyUrl": zod.string().describe('Link to purchase the product on IKEA.')
 }))
+}).optional().describe('Present only when status is \"done\".'),
+  "error": zod.string().optional().describe('Human-readable error message. Present only when status is \"failed\".')
 })
 
 

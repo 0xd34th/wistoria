@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -31,6 +31,7 @@ import { useDailyUsage, PRO_DAILY_LIMIT } from "@/hooks/useDailyUsage";
 import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { ikeaImageUrl } from "@/lib/utils";
+import { useJobPoller } from "@/hooks/useJobPoller";
 import { ZoomableImageModal } from "@/components/ZoomableImageModal";
 import {
   useListProducts,
@@ -101,7 +102,7 @@ export default function RedesignResultScreen() {
   const router = useRouter();
   const { getRedesign, deviceId } = useSavedRedesigns();
   const queryClient = useQueryClient();
-  const { mutateAsync: regenerate, isPending: isRegenerating } = useRegenerateRedesign();
+  const { mutateAsync: regenerate, isPending: isRegenMutating } = useRegenerateRedesign();
   const { isSubscribed, isCustomerInfoLoading } = useSubscription();
   const { hasFreeRedesign, incrementFreeUsed, isLoaded: isFreeUsageLoaded } = useFreeUsage();
   const { hasProRedesignToday, incrementProDaily, isLoaded: isDailyLoaded } = useDailyUsage();
@@ -121,6 +122,38 @@ export default function RedesignResultScreen() {
   const [downloadState, setDownloadState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [showPaywall, setShowPaywall] = useState(false);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
+
+  const onRegenDone = useCallback(
+    async (updated: Redesign) => {
+      if (isSubscribed) {
+        await incrementProDaily();
+      } else {
+        await incrementFreeUsed();
+      }
+      if (deviceId) {
+        const listKey = getListRedesignsQueryKey({ deviceId });
+        queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+          prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
+        );
+        queryClient.invalidateQueries({ queryKey: listKey });
+      }
+      setWorkingProducts(updated.products);
+      setShowOriginal(false);
+    },
+    [isSubscribed, incrementProDaily, incrementFreeUsed, deviceId, queryClient],
+  );
+
+  const onRegenError = useCallback((message: string) => {
+    console.error("Regeneration failed:", message);
+  }, []);
+
+  const { startJob: startRegenJob, isPolling: isRegenPolling } = useJobPoller({
+    storageKey: `@wistoria_pending_regen_job_${id}`,
+    onDone: onRegenDone,
+    onError: onRegenError,
+  });
+
+  const isRegenerating = isRegenMutating || isRegenPolling;
 
   const roomTypeId = redesign?.roomTypeId ?? "";
   const productsParams = { roomTypeId };
@@ -303,25 +336,13 @@ export default function RedesignResultScreen() {
     // }
 
     try {
-      const updated = await regenerate({
+      const { jobId } = await regenerate({
         id,
         data: { deviceId, isSubscribed, productIds: workingProducts.map((p) => p.id) },
       });
-
-      if (isSubscribed) {
-        await incrementProDaily();
-      } else {
-        await incrementFreeUsed();
-      }
-
-      const listKey = getListRedesignsQueryKey({ deviceId });
-      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
-        prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
-      );
-      queryClient.invalidateQueries({ queryKey: listKey });
-      setShowOriginal(false);
+      await startRegenJob(jobId);
     } catch (e) {
-      console.error("Failed to regenerate redesign", e);
+      console.error("Failed to start regeneration", e);
     }
   };
 

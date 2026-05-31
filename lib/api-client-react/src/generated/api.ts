@@ -22,6 +22,8 @@ import type {
 import type {
   ErrorResponse,
   HealthStatus,
+  JobCreated,
+  JobStatus,
   ListProductsParams,
   ListRedesignsParams,
   Product,
@@ -457,13 +459,13 @@ export const getRegenerateRedesignUrl = (id: string,) => {
 }
 
 /**
- * Re-runs the AI redesign for an existing saved design using the user's curated product selection, updates the saved design in place, and returns it.
+ * Validates the request synchronously then starts a background AI regeneration job. Returns a jobId immediately (202). Poll GET /jobs/{jobId} for completion.
  * @summary Regenerate a saved redesign with a curated set of pieces
  */
 export const regenerateRedesign = async (id: string,
-    regenerateRequest: RegenerateRequest, options?: RequestInit): Promise<Redesign> => {
+    regenerateRequest: RegenerateRequest, options?: RequestInit): Promise<JobCreated> => {
 
-  return customFetch<Redesign>(getRegenerateRedesignUrl(id),
+  return customFetch<JobCreated>(getRegenerateRedesignUrl(id),
   {
     ...options,
     method: 'POST',
@@ -530,12 +532,12 @@ export const getCreateRedesignUrl = () => {
 }
 
 /**
- * Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
+ * Validates the request synchronously then starts a background AI redesign job. Returns a jobId immediately (202). Poll GET /jobs/{jobId} for completion.
  * @summary Redesign a room photo
  */
-export const createRedesign = async (redesignRequest: RedesignRequest, options?: RequestInit): Promise<Redesign> => {
+export const createRedesign = async (redesignRequest: RedesignRequest, options?: RequestInit): Promise<JobCreated> => {
 
-  return customFetch<Redesign>(getCreateRedesignUrl(),
+  return customFetch<JobCreated>(getCreateRedesignUrl(),
   {
     ...options,
     method: 'POST',
@@ -592,4 +594,82 @@ export const useCreateRedesign = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getCreateRedesignMutationOptions(options));
     }
+
+export const getGetJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/jobs/${jobId}`
+}
+
+/**
+ * Returns the current status of an async redesign or regeneration job. Poll every 2 seconds until status is "done" or "failed". Jobs expire after 2 hours.
+ * @summary Poll async redesign job status
+ */
+export const getJob = async (jobId: string, options?: RequestInit): Promise<JobStatus> => {
+
+  return customFetch<JobStatus>(getGetJobUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobQueryKey = (jobId: string,) => {
+    return [
+    `/api/jobs/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetJobQueryOptions = <TData = Awaited<ReturnType<typeof getJob>>, TError = ErrorType<ErrorResponse>>(jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJob>>> = ({ signal }) => getJob(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetJobQueryResult = NonNullable<Awaited<ReturnType<typeof getJob>>>
+export type GetJobQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Poll async redesign job status
+ */
+
+export function useGetJob<TData = Awaited<ReturnType<typeof getJob>>, TError = ErrorType<ErrorResponse>>(
+ jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetJobQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

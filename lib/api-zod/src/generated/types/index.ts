@@ -8,6 +8,9 @@
 
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './jobCreated';
+export * from './jobStatus';
+export * from './jobStatusStatus';
 export * from './listProductsParams';
 export * from './listRedesignsParams';
 export * from './product';
