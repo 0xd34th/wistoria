@@ -1,18 +1,20 @@
 import React, { createContext, useContext } from "react";
 import { Platform } from "react-native";
-import Purchases, {
-  type CustomerInfo,
-  type PurchasesOffering,
-  type PurchasesPackage,
-} from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import type {
+  CustomerInfo,
+  PurchasesOffering,
+  PurchasesPackage,
+} from "react-native-purchases";
 
 const REVENUECAT_TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "pro";
+
+const isNative = Platform.OS === "ios" || Platform.OS === "android";
 
 export function isRevenueCatTestMode() {
   return (
@@ -24,7 +26,9 @@ export function isRevenueCatTestMode() {
 
 function getRevenueCatApiKey() {
   if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error("RevenueCat Public API Keys not found. Set EXPO_PUBLIC_REVENUECAT_TEST_API_KEY, EXPO_PUBLIC_REVENUECAT_IOS_API_KEY, and EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY.");
+    throw new Error(
+      "RevenueCat Public API Keys not found. Set EXPO_PUBLIC_REVENUECAT_TEST_API_KEY, EXPO_PUBLIC_REVENUECAT_IOS_API_KEY, and EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY.",
+    );
   }
 
   if (isRevenueCatTestMode()) {
@@ -43,21 +47,35 @@ function getRevenueCatApiKey() {
 }
 
 export function initializeRevenueCat() {
+  if (!isNative) {
+    console.log("[RevenueCat] Skipping init on web/non-native platform");
+    return;
+  }
+
   const apiKey = getRevenueCatApiKey();
   if (!apiKey) throw new Error("RevenueCat Public API Key not found");
 
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
-  Purchases.configure({ apiKey });
+  const RC = require("react-native-purchases").default;
+  if (!RC || typeof RC.configure !== "function") {
+    console.log("[RevenueCat] Native module not available");
+    return;
+  }
 
-  console.log("Configured RevenueCat");
+  if (RC.LOG_LEVEL) {
+    RC.setLogLevel(RC.LOG_LEVEL.DEBUG);
+  }
+  RC.configure({ apiKey });
+  console.log("[RevenueCat] Configured");
 }
 
 function useSubscriptionContext() {
   const customerInfoQuery = useQuery({
     queryKey: ["revenuecat", "customer-info"],
-    queryFn: async () => {
-      const info = await Purchases.getCustomerInfo();
-      return info;
+    queryFn: async (): Promise<CustomerInfo | null> => {
+      if (!isNative) return null;
+      const RC = require("react-native-purchases").default;
+      if (!RC?.getCustomerInfo) return null;
+      return RC.getCustomerInfo();
     },
     staleTime: 60 * 1000,
   });
@@ -65,39 +83,42 @@ function useSubscriptionContext() {
   const offeringsQuery = useQuery({
     queryKey: ["revenuecat", "offerings"],
     queryFn: async () => {
-      const offerings = await Purchases.getOfferings();
-      return offerings;
+      if (!isNative) return null;
+      const RC = require("react-native-purchases").default;
+      if (!RC?.getOfferings) return null;
+      return RC.getOfferings();
     },
     staleTime: 300 * 1000,
   });
 
   const purchaseMutation = useMutation({
     mutationFn: async (packageToPurchase: PurchasesPackage) => {
-      const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
-      return customerInfo;
+      const RC = require("react-native-purchases").default;
+      const { customerInfo } = await RC.purchasePackage(packageToPurchase);
+      return customerInfo as CustomerInfo;
     },
     onSuccess: () => customerInfoQuery.refetch(),
   });
 
   const restoreMutation = useMutation({
     mutationFn: async () => {
-      return Purchases.restorePurchases();
+      const RC = require("react-native-purchases").default;
+      return RC.restorePurchases();
     },
     onSuccess: () => customerInfoQuery.refetch(),
   });
 
   const currentOffering: PurchasesOffering | null =
-    offeringsQuery.data?.current ?? null;
+    (offeringsQuery.data as any)?.current ?? null;
 
   const monthlyPackage = currentOffering?.monthly ?? null;
   const annualPackage = currentOffering?.annual ?? null;
 
   const isSubscribed =
-    customerInfoQuery.data?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !==
-    undefined;
+    (customerInfoQuery.data?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER]) !== undefined;
 
   return {
-    customerInfo: customerInfoQuery.data as CustomerInfo | undefined,
+    customerInfo: customerInfoQuery.data as CustomerInfo | null | undefined,
     currentOffering,
     monthlyPackage,
     annualPackage,
