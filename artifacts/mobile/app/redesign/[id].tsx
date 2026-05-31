@@ -292,14 +292,15 @@ export default function RedesignResultScreen() {
     if (!deviceId || workingProducts.length === 0) return;
     if (!isAccessReady) return;
 
-    if (!isSubscribed && !hasFreeRedesign) {
-      setShowPaywall(true);
-      return;
-    }
-    if (isSubscribed && !hasProRedesignToday) {
-      setDailyLimitHit(true);
-      return;
-    }
+    // TESTING: paywall and daily limit disabled
+    // if (!isSubscribed && !hasFreeRedesign) {
+    //   setShowPaywall(true);
+    //   return;
+    // }
+    // if (isSubscribed && !hasProRedesignToday) {
+    //   setDailyLimitHit(true);
+    //   return;
+    // }
 
     try {
       const updated = await regenerate({
