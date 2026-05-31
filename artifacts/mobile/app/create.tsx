@@ -56,11 +56,13 @@ export default function CreateScreen() {
       } else {
         await incrementFreeUsed();
       }
-      const listKey = getListRedesignsQueryKey();
-      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
-        prev ? [redesign, ...prev] : [redesign],
-      );
-      queryClient.invalidateQueries({ queryKey: listKey });
+      if (deviceId) {
+        const listKey = getListRedesignsQueryKey({ deviceId });
+        queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+          prev ? [redesign, ...prev] : [redesign],
+        );
+        queryClient.invalidateQueries({ queryKey: listKey });
+      }
       router.replace(`/redesign/${redesign.id}`);
     },
     [isSubscribed, incrementProDaily, incrementFreeUsed, deviceId, queryClient, router],

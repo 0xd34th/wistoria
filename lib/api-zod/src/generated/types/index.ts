@@ -12,6 +12,7 @@ export * from './jobCreated';
 export * from './jobStatus';
 export * from './jobStatusStatus';
 export * from './listProductsParams';
+export * from './listRedesignsParams';
 export * from './product';
 export * from './redesign';
 export * from './redesignRequest';

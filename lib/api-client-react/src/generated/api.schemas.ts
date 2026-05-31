@@ -116,3 +116,7 @@ export type ListProductsParams = {
 roomTypeId?: string;
 };
 
+export type ListRedesignsParams = {
+deviceId: string;
+};
+
