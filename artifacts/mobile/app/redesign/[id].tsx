@@ -130,11 +130,13 @@ export default function RedesignResultScreen() {
       } else {
         await incrementFreeUsed();
       }
-      const listKey = getListRedesignsQueryKey();
-      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
-        prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
-      );
-      queryClient.invalidateQueries({ queryKey: listKey });
+      if (deviceId) {
+        const listKey = getListRedesignsQueryKey({ deviceId });
+        queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+          prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : [updated],
+        );
+        queryClient.invalidateQueries({ queryKey: listKey });
+      }
       setWorkingProducts(updated.products);
       setShowOriginal(false);
     },

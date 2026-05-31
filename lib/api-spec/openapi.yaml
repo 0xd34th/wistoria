@@ -81,8 +81,14 @@ paths:
     get:
       operationId: listRedesigns
       tags: [redesign]
-      summary: List all saved redesigns
-      description: Returns all saved redesigns, newest first.
+      summary: List saved redesigns for a device
+      description: Returns the saved redesigns for the given device, newest first.
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -92,6 +98,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /redesigns/{id}/regenerate:
     post:
       operationId: regenerateRedesign
