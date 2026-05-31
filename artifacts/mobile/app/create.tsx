@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import Animated, { FadeIn, FadeOut, SlideInUp, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 

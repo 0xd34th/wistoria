@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, View, Dimensions } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
