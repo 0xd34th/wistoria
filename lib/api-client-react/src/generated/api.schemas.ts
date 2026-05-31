@@ -70,6 +70,23 @@ export interface RegenerateRequest {
   productIds: string[];
 }
 
+export interface JobCreated {
+  /** Unique identifier for the async job. Use with GET /jobs/{jobId} to poll status. */
+  jobId: string;
+}
+
+/**
+ * Current job state.
+ */
+export type JobStatusStatus = typeof JobStatusStatus[keyof typeof JobStatusStatus];
+
+
+export const JobStatusStatus = {
+  pending: 'pending',
+  done: 'done',
+  failed: 'failed',
+} as const;
+
 export interface Redesign {
   id: string;
   /** Creation time as epoch milliseconds. */
@@ -84,6 +101,15 @@ export interface Redesign {
   /** Base64-encoded redesigned room image (PNG). */
   redesignedImage: string;
   products: Product[];
+}
+
+export interface JobStatus {
+  /** Current job state. */
+  status: JobStatusStatus;
+  /** Present only when status is "done". */
+  redesign?: Redesign;
+  /** Human-readable error message. Present only when status is "failed". */
+  error?: string;
 }
 
 export type ListProductsParams = {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -14,6 +14,7 @@ import { useDailyUsage, PRO_DAILY_LIMIT } from "@/hooks/useDailyUsage";
 import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { getAssetUrl } from "@/lib/utils";
+import { useJobPoller } from "@/hooks/useJobPoller";
 import {
   useListStyles,
   useListRooms,
@@ -46,7 +47,38 @@ export default function CreateScreen() {
 
   const { data: stylesList, isLoading: isLoadingStyles } = useListStyles();
   const { data: roomsList, isLoading: isLoadingRooms } = useListRooms();
-  const { mutateAsync: createRedesign, isPending: isGenerating, error } = useCreateRedesign();
+  const { mutateAsync: createRedesign, isPending: isMutating } = useCreateRedesign();
+
+  const onJobDone = useCallback(
+    async (redesign: Redesign) => {
+      if (isSubscribed) {
+        await incrementProDaily();
+      } else {
+        await incrementFreeUsed();
+      }
+      if (deviceId) {
+        const listKey = getListRedesignsQueryKey({ deviceId });
+        queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
+          prev ? [redesign, ...prev] : [redesign],
+        );
+        queryClient.invalidateQueries({ queryKey: listKey });
+      }
+      router.replace(`/redesign/${redesign.id}`);
+    },
+    [isSubscribed, incrementProDaily, incrementFreeUsed, deviceId, queryClient, router],
+  );
+
+  const onJobError = useCallback((message: string) => {
+    console.error("Redesign failed:", message);
+  }, []);
+
+  const { startJob, isPolling } = useJobPoller({
+    storageKey: "@wistoria_pending_create_job",
+    onDone: onJobDone,
+    onError: onJobError,
+  });
+
+  const isGenerating = isMutating || isPolling;
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [dailyLimitHit, setDailyLimitHit] = useState(false);
@@ -99,7 +131,7 @@ export default function CreateScreen() {
     if (!isAccessReady) return;
 
     try {
-      const result = await createRedesign({
+      const { jobId } = await createRedesign({
         data: {
           image: imageBase64,
           styleId: selectedStyleId,
@@ -108,22 +140,9 @@ export default function CreateScreen() {
           isSubscribed,
         },
       });
-
-      if (isSubscribed) {
-        await incrementProDaily();
-      } else {
-        await incrementFreeUsed();
-      }
-
-      const listKey = getListRedesignsQueryKey({ deviceId });
-      queryClient.setQueryData<Redesign[]>(listKey, (prev) =>
-        prev ? [result, ...prev] : [result],
-      );
-      queryClient.invalidateQueries({ queryKey: listKey });
-
-      router.replace(`/redesign/${result.id}`);
+      await startJob(jobId);
     } catch (e) {
-      console.error("Failed to generate redesign", e);
+      console.error("Failed to start redesign", e);
     }
   };
 
@@ -298,12 +317,6 @@ export default function CreateScreen() {
           </Animated.View>
         )}
 
-        {error && (
-          <Animated.View entering={SlideInUp} style={[styles.errorContainer, { backgroundColor: colors.destructive + "15" }]}>
-            <Feather name="alert-circle" size={20} color={colors.destructive} />
-            <Text style={[styles.errorText, { color: colors.destructive }]}>Failed to curate room. Please try again.</Text>
-          </Animated.View>
-        )}
       </ScrollView>
 
       <Animated.View

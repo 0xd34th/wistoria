@@ -1,3 +1,10 @@
+export function getApiUrl(path: string): string {
+  const domain = process.env.EXPO_PUBLIC_DOMAIN;
+  const clean = path.startsWith("/") ? path.slice(1) : path;
+  if (!domain) return `/api/${clean}`;
+  return `https://${domain}/api/${clean}`;
+}
+
 export function getAssetUrl(path: string): string {
   if (!path) return "";
   if (path.startsWith("http")) return path;

@@ -1,5 +1,7 @@
+import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Router, type IRouter } from "express";
+import { logger } from "../lib/logger";
 import { toFile } from "openai";
 import { db, redesignsTable, type RedesignRow } from "@workspace/db";
 import { count, desc, eq, sql, and } from "drizzle-orm";
@@ -19,6 +21,37 @@ import {
 } from "../data/ikeaCatalog";
 
 const router: IRouter = Router();
+
+// ---------------------------------------------------------------------------
+// Async job store — jobs live in memory for up to 2 h.
+// If the process restarts the client gets a 404 → "timed out, try again".
+// ---------------------------------------------------------------------------
+interface Job {
+  status: "pending" | "done" | "failed";
+  redesign?: ReturnType<typeof toRedesign>;
+  error?: string;
+  createdAt: number;
+}
+const jobs = new Map<string, Job>();
+
+setInterval(
+  () => {
+    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    for (const [id, job] of jobs) {
+      if (job.createdAt < cutoff) jobs.delete(id);
+    }
+  },
+  30 * 60 * 1000,
+).unref();
+
+router.get("/jobs/:jobId", (req, res) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ message: "Job not found or expired." });
+    return;
+  }
+  res.json({ status: job.status, redesign: job.redesign, error: job.error });
+});
 
 const FREE_REDESIGN_LIMIT = 1;
 const PRO_DAILY_LIMIT = 5;
@@ -354,6 +387,74 @@ function buildPrompt(
   return lines.join(" ");
 }
 
+async function runRegenerateJob(
+  jobId: string,
+  params: {
+    redesignId: string;
+    decoded: { buffer: Buffer; mime: string; ext: string };
+    products: Product[];
+    style: StylePreset;
+    room: RoomType;
+  },
+) {
+  try {
+    const { buffer, mime, ext } = params.decoded;
+    const file = await toFile(buffer, `room.${ext}`, { type: mime });
+    const references = await fetchProductReferenceImages(params.products, logger);
+
+    const response = await openai.images.edit({
+      model: "gpt-image-2",
+      image: [file, ...references.map((r) => r.file)],
+      prompt: buildPrompt(
+        params.style,
+        params.room,
+        params.products,
+        references.map((r) => r.product),
+      ),
+      size: "auto",
+      quality: "low",
+    });
+
+    const redesignedImage = response.data?.[0]?.b64_json ?? "";
+    if (!redesignedImage) {
+      jobs.set(jobId, {
+        status: "failed",
+        error: "The redesign could not be generated.",
+        createdAt: Date.now(),
+      });
+      return;
+    }
+
+    const [row] = await db
+      .update(redesignsTable)
+      .set({ redesignedImage, products: params.products })
+      .where(eq(redesignsTable.id, params.redesignId))
+      .returning();
+
+    if (!row) {
+      jobs.set(jobId, {
+        status: "failed",
+        error: "The redesign could not be saved.",
+        createdAt: Date.now(),
+      });
+      return;
+    }
+
+    jobs.set(jobId, {
+      status: "done",
+      redesign: toRedesign(row),
+      createdAt: Date.now(),
+    });
+  } catch (err) {
+    logger.error({ err }, "Redesign regeneration failed");
+    jobs.set(jobId, {
+      status: "failed",
+      error: "Something went wrong regenerating the redesign.",
+      createdAt: Date.now(),
+    });
+  }
+}
+
 router.post("/redesigns/:id/regenerate", async (req, res) => {
   const id = req.params.id;
   const body = req.body as {
@@ -424,18 +525,45 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
     return;
   }
 
+  // All validation passed — start background job and return immediately.
+  const jobId = crypto.randomUUID();
+  jobs.set(jobId, { status: "pending", createdAt: Date.now() });
+  res.status(202).json({ jobId });
+
+  void runRegenerateJob(jobId, {
+    redesignId: id,
+    decoded,
+    products,
+    style,
+    room,
+  });
+});
+
+async function runCreateJob(
+  jobId: string,
+  params: {
+    decoded: { buffer: Buffer; mime: string; ext: string };
+    products: Product[];
+    style: StylePreset;
+    room: RoomType;
+    deviceId: string;
+    styleId: string;
+    roomTypeId: string;
+    originalImage: string;
+  },
+) {
   try {
-    const { buffer, mime, ext } = decoded;
+    const { buffer, mime, ext } = params.decoded;
     const file = await toFile(buffer, `room.${ext}`, { type: mime });
-    const references = await fetchProductReferenceImages(products, req.log);
+    const references = await fetchProductReferenceImages(params.products, logger);
 
     const response = await openai.images.edit({
       model: "gpt-image-2",
       image: [file, ...references.map((r) => r.file)],
       prompt: buildPrompt(
-        style,
-        room,
-        products,
+        params.style,
+        params.room,
+        params.products,
         references.map((r) => r.product),
       ),
       size: "auto",
@@ -444,29 +572,51 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
 
     const redesignedImage = response.data?.[0]?.b64_json ?? "";
     if (!redesignedImage) {
-      res.status(502).json({ message: "The redesign could not be generated." });
+      jobs.set(jobId, {
+        status: "failed",
+        error: "The redesign could not be generated.",
+        createdAt: Date.now(),
+      });
       return;
     }
 
     const [row] = await db
-      .update(redesignsTable)
-      .set({ redesignedImage, products })
-      .where(eq(redesignsTable.id, id))
+      .insert(redesignsTable)
+      .values({
+        deviceId: params.deviceId,
+        styleId: params.styleId,
+        styleName: params.style.name,
+        roomTypeId: params.roomTypeId,
+        roomName: params.room.name,
+        originalImage: params.originalImage,
+        redesignedImage,
+        products: params.products,
+      })
       .returning();
 
     if (!row) {
-      res.status(500).json({ message: "The redesign could not be saved." });
+      jobs.set(jobId, {
+        status: "failed",
+        error: "The redesign could not be saved.",
+        createdAt: Date.now(),
+      });
       return;
     }
 
-    res.json(toRedesign(row));
+    jobs.set(jobId, {
+      status: "done",
+      redesign: toRedesign(row),
+      createdAt: Date.now(),
+    });
   } catch (err) {
-    req.log.error({ err }, "Redesign regeneration failed");
-    res
-      .status(502)
-      .json({ message: "Something went wrong regenerating the redesign." });
+    logger.error({ err }, "Redesign generation failed");
+    jobs.set(jobId, {
+      status: "failed",
+      error: "Something went wrong generating the redesign.",
+      createdAt: Date.now(),
+    });
   }
-});
+}
 
 router.post("/redesign", async (req, res) => {
   const body = req.body as {
@@ -524,56 +674,21 @@ router.post("/redesign", async (req, res) => {
 
   const products = await getProductsForRoom(roomTypeId, selectedProductIds);
 
-  try {
-    const { buffer, mime, ext } = decoded;
-    const file = await toFile(buffer, `room.${ext}`, { type: mime });
-    const references = await fetchProductReferenceImages(products, req.log);
+  // All validation passed — start background job and return immediately.
+  const jobId = crypto.randomUUID();
+  jobs.set(jobId, { status: "pending", createdAt: Date.now() });
+  res.status(202).json({ jobId });
 
-    const response = await openai.images.edit({
-      model: "gpt-image-2",
-      image: [file, ...references.map((r) => r.file)],
-      prompt: buildPrompt(
-        style,
-        room,
-        products,
-        references.map((r) => r.product),
-      ),
-      size: "auto",
-      quality: "low",
-    });
-
-    const redesignedImage = response.data?.[0]?.b64_json ?? "";
-    if (!redesignedImage) {
-      res.status(502).json({ message: "The redesign could not be generated." });
-      return;
-    }
-
-    const [row] = await db
-      .insert(redesignsTable)
-      .values({
-        deviceId,
-        styleId,
-        styleName: style.name,
-        roomTypeId,
-        roomName: room.name,
-        originalImage: image,
-        redesignedImage,
-        products,
-      })
-      .returning();
-
-    if (!row) {
-      res.status(500).json({ message: "The redesign could not be saved." });
-      return;
-    }
-
-    res.json(toRedesign(row));
-  } catch (err) {
-    req.log.error({ err }, "Redesign generation failed");
-    res
-      .status(502)
-      .json({ message: "Something went wrong generating the redesign." });
-  }
+  void runCreateJob(jobId, {
+    decoded,
+    products,
+    style,
+    room,
+    deviceId,
+    styleId,
+    roomTypeId,
+    originalImage: image,
+  });
 });
 
 export default router;
