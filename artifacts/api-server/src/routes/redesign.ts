@@ -242,20 +242,31 @@ async function fetchProductReferenceImages(
   return refs;
 }
 
+function formatProductLine(p: Product): string {
+  const dims: string[] = [];
+  if (p.widthCm != null && p.depthCm != null) {
+    dims.push(`${p.widthCm}×${p.depthCm} cm footprint`);
+  }
+  if (p.heightCm != null) {
+    dims.push(`${p.heightCm} cm tall`);
+  }
+  const dimStr = dims.length > 0 ? `, ${dims.join(", ")}` : "";
+  return `${p.name} (${p.category}, ${p.color}${dimStr})`;
+}
+
 function buildPrompt(
   style: StylePreset,
   room: RoomType,
   products: Product[],
   referenceProducts: Product[] = [],
 ): string {
-  const items = products
-    .map((p) => `${p.name} (${p.category}, ${p.color})`)
-    .join("; ");
+  const items = products.map(formatProductLine).join("; ");
   const lines = [
     `You are an interior renovation tool. The FIRST image is a photograph of a real ${room.name.toLowerCase()} to edit.`,
     "CRITICAL: Keep the room's layout and architecture IDENTICAL to the original photo. Do not move, add, remove, or resize any walls, windows, doors, ceiling, or built-in structures. Preserve the exact camera angle, perspective, focal length, framing, room dimensions, and proportions. The position of the floor, walls, and openings must match the original precisely.",
     `Renovate the space in a ${style.name} interior style. ${style.promptHint}`,
     `Furnish and decorate the room using ONLY these specific IKEA products, placing each one naturally, realistically, and at a believable scale where it belongs in the scene: ${items}.`,
+    "SCALE IS CRITICAL: Render each piece at its EXACT real-world size as specified in centimeters. A rug listed as 170×240 cm must visibly cover the majority of the open floor between furniture — it should be large and prominent on the floor, never small or timid. A sofa listed as 230 cm wide must span a full wall section. A pendant lamp must hang from the ceiling at a convincing size. Never scale items down to a fraction of their real size. All items must be in true proportion to each other and to the room's architecture.",
   ];
   if (referenceProducts.length > 0) {
     const refNames = referenceProducts.map((p) => p.name).join("; ");

@@ -31,6 +31,9 @@ export interface Product {
   group: string;
   imageUrl: string;
   buyUrl: string;
+  widthCm?: number | null;
+  depthCm?: number | null;
+  heightCm?: number | null;
 }
 
 const STYLE_DATA: StylePreset[] = [
@@ -201,6 +204,9 @@ export async function seedIkeaProducts(): Promise<void> {
           group: sql`excluded."group"`,
           imageUrl: sql`excluded.image_url`,
           buyUrl: sql`excluded.buy_url`,
+          widthCm: sql`excluded.width_cm`,
+          depthCm: sql`excluded.depth_cm`,
+          heightCm: sql`excluded.height_cm`,
         },
       });
   }
