@@ -28,15 +28,6 @@ if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 }
 
-try {
-  initializeRevenueCat();
-} catch (err) {
-  Alert.alert(
-    "RevenueCat Unavailable",
-    err instanceof Error ? err.message : "Unknown error",
-  );
-}
-
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
@@ -57,6 +48,17 @@ export default function RootLayout() {
     Inter_700Bold,
     ...Feather.font,
   });
+
+  useEffect(() => {
+    try {
+      initializeRevenueCat();
+    } catch (err) {
+      Alert.alert(
+        "RevenueCat Unavailable",
+        err instanceof Error ? err.message : "Unknown error",
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
