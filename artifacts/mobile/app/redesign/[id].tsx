@@ -154,7 +154,10 @@ export default function RedesignResultScreen() {
   const filteredAlternatives = useMemo(() => {
     const q = swapSearch.trim().toLowerCase();
     return (eligibleProducts ?? []).filter((p) => {
-      const matchesGroup = !swapGroup || p.group === swapGroup;
+      // When a specific role is chosen, role wins — ignore group so all
+      // 210 rugs (or whatever role) show up regardless of which group chip
+      // was used to navigate to that role.
+      const matchesGroup = swapRole ? true : !swapGroup || p.group === swapGroup;
       const matchesRole = !swapRole || p.role === swapRole;
       const matchesSearch =
         !q ||
