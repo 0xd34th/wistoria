@@ -1,6 +1,7 @@
 import {
   doublePrecision,
   index,
+  integer,
   pgTable,
   text,
 } from "drizzle-orm/pg-core";
@@ -21,6 +22,9 @@ export const ikeaProductsTable = pgTable(
     group: text("group").notNull().default("Other"),
     imageUrl: text("image_url").notNull(),
     buyUrl: text("buy_url").notNull(),
+    widthCm: integer("width_cm"),
+    depthCm: integer("depth_cm"),
+    heightCm: integer("height_cm"),
   },
   (table) => [
     index("ikea_products_role_idx").on(table.role),
