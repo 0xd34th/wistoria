@@ -10,14 +10,22 @@ export function getAssetUrl(path: string): string {
 }
 
 export function ikeaImageUrl(url: string, width = 1000): string {
+  if (!url) return "";
+
   const absolute = getAssetUrl(url);
   if (!absolute.includes("ikea.com")) return absolute;
 
+  const domain = process.env.EXPO_PUBLIC_DOMAIN;
+
+  let sized: string;
   try {
     const parsed = new URL(absolute);
     parsed.searchParams.set("imwidth", String(width));
-    return parsed.toString();
+    sized = parsed.toString();
   } catch {
-    return absolute;
+    sized = absolute;
   }
+
+  if (!domain) return sized;
+  return `https://${domain}/api/proxy/image?url=${encodeURIComponent(sized)}`;
 }
