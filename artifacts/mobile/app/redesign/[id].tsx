@@ -43,6 +43,49 @@ import {
 
 const { width } = Dimensions.get("window");
 
+function ProductThumb({
+  imageUrl,
+  size,
+  style,
+  colors,
+}: {
+  imageUrl: string;
+  size: "card" | "thumb";
+  style?: object;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  const [error, setError] = useState(false);
+  if (error || !imageUrl) {
+    return (
+      <View
+        style={[
+          style,
+          {
+            backgroundColor: colors.muted,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
+        <Feather
+          name="image"
+          size={size === "card" ? 28 : 20}
+          color={colors.mutedForeground}
+        />
+      </View>
+    );
+  }
+  return (
+    <ExpoImage
+      source={{ uri: ikeaImageUrl(imageUrl, size === "card" ? 1000 : 200) }}
+      style={style}
+      contentFit="cover"
+      transition={150}
+      onError={() => setError(true)}
+    />
+  );
+}
+
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
 const humanizeRole = (role: string) =>
@@ -165,9 +208,11 @@ export default function RedesignResultScreen() {
     );
   }
 
-  const openBuyLink = async (url: string) => {
+  const openBuyLink = async (product: Product) => {
+    const q = encodeURIComponent(`${product.name} ${product.color}`);
+    const searchUrl = `https://www.ikea.com/us/en/search/products/?q=${q}`;
     try {
-      await WebBrowser.openBrowserAsync(url);
+      await WebBrowser.openBrowserAsync(searchUrl);
     } catch (e) {
       console.error("Failed to open link", e);
     }
@@ -434,16 +479,16 @@ export default function RedesignResultScreen() {
                 >
                   <Pressable
                     style={({ pressed }) => [pressed && { opacity: 0.9 }]}
-                    onPress={() => openBuyLink(product.buyUrl)}
+                    onPress={() => openBuyLink(product)}
                   >
-                    <ExpoImage
-                      source={{ uri: ikeaImageUrl(product.imageUrl) }}
+                    <ProductThumb
+                      imageUrl={product.imageUrl}
+                      size="card"
                       style={[
                         styles.productImage,
                         { borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius },
                       ]}
-                      contentFit="cover"
-                      transition={150}
+                      colors={colors}
                     />
                     <View style={styles.productInfo}>
                       <View style={styles.ikeaBadge}>
@@ -694,11 +739,11 @@ export default function RedesignResultScreen() {
                         isInCollection && { borderColor: colors.primary },
                       ]}
                     >
-                      <ExpoImage
-                        source={{ uri: ikeaImageUrl(product.imageUrl, 200) }}
+                      <ProductThumb
+                        imageUrl={product.imageUrl}
+                        size="thumb"
                         style={styles.altImage}
-                        contentFit="cover"
-                        transition={100}
+                        colors={colors}
                       />
                       <View style={styles.altInfo}>
                         <Text style={[styles.altName, { color: colors.foreground }]} numberOfLines={1}>
