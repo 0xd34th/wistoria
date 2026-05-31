@@ -98,15 +98,6 @@ export default function CreateScreen() {
     if (!imageBase64 || !selectedStyleId || !selectedRoomTypeId || !deviceId) return;
     if (!isAccessReady) return;
 
-    if (!isSubscribed && !hasFreeRedesign) {
-      setShowPaywall(true);
-      return;
-    }
-    if (isSubscribed && !hasProRedesignToday) {
-      setDailyLimitHit(true);
-      return;
-    }
-
     try {
       const result = await createRedesign({
         data: {
