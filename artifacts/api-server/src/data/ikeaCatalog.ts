@@ -1,5 +1,5 @@
 import { db, ikeaProductsTable } from "@workspace/db";
-import { and, arrayContains, inArray, ne, sql } from "drizzle-orm";
+import { and, arrayContains, eq, inArray, ne, sql } from "drizzle-orm";
 
 import ikeaSeed from "./ikeaSeed.json";
 
@@ -202,7 +202,7 @@ export async function seedIkeaProducts(): Promise<void> {
           roomTypes: sql`excluded.room_types`,
           role: sql`excluded.role`,
           group: sql`excluded."group"`,
-          imageUrl: sql`excluded.image_url`,
+          imageUrl: sql`CASE WHEN excluded.image_url = '' THEN ${ikeaProductsTable.imageUrl} ELSE excluded.image_url END`,
           buyUrl: sql`excluded.buy_url`,
           widthCm: sql`excluded.width_cm`,
           depthCm: sql`excluded.depth_cm`,
@@ -210,6 +210,9 @@ export async function seedIkeaProducts(): Promise<void> {
         },
       });
   }
+  // Purge any stale rows with no image URL — they would produce "Invalid URL"
+  // errors when the server tries to fetch reference images for the redesign prompt.
+  await db.delete(ikeaProductsTable).where(eq(ikeaProductsTable.imageUrl, ""));
 }
 
 export async function getProductsForStyle(_styleId?: string): Promise<Product[]> {

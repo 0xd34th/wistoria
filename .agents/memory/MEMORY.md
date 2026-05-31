@@ -1,0 +1,1 @@
+- [IKEA seed integrity](ikea-seed-integrity.md) — ikeaSeed.json must have non-empty imageUrls or products silently fail redesign with "Invalid URL" in production.
