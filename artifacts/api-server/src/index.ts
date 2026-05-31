@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { seedIkeaProducts } from "./data/ikeaCatalog";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  seedIkeaProducts()
+    .then(() => logger.info("IKEA product catalog seeded"))
+    .catch((e) => logger.error({ err: e }, "Failed to seed IKEA products"));
 });

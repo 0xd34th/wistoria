@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: redesign
+    description: Room redesign operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,152 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /styles:
+    get:
+      operationId: listStyles
+      tags: [redesign]
+      summary: List style presets
+      description: Returns the available interior design style presets.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StylePreset"
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [redesign]
+      summary: List room types
+      description: Returns the available room types that drive product selection.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomType"
+  /products:
+    get:
+      operationId: listProducts
+      tags: [redesign]
+      summary: List shoppable IKEA products
+      description: Returns the IKEA product catalog. When roomTypeId is provided, returns the full pool of products eligible for that room (the swappable set), not the de-cluttered default selection.
+      parameters:
+        - name: roomTypeId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+  /redesigns:
+    get:
+      operationId: listRedesigns
+      tags: [redesign]
+      summary: List saved redesigns for a device
+      description: Returns the saved redesigns for the given device, newest first.
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /redesigns/{id}/regenerate:
+    post:
+      operationId: regenerateRedesign
+      tags: [redesign]
+      summary: Regenerate a saved redesign with a curated set of pieces
+      description: Re-runs the AI redesign for an existing saved design using the user's curated product selection, updates the saved design in place, and returns it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegenerateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /redesign:
+    post:
+      operationId: createRedesign
+      tags: [redesign]
+      summary: Redesign a room photo
+      description: Takes a base64 room photo and a style, generates an AI redesign grounded in real shoppable IKEA products, saves it for the device, and returns the saved redesign.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedesignRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Redesign"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +181,172 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    RoomType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - name
+        - description
+    StylePreset:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tagline:
+          type: string
+        description:
+          type: string
+        accentColor:
+          type: string
+        previewImage:
+          type: string
+          description: Relative URL path to the style preview image (served by the API).
+      required:
+        - id
+        - name
+        - tagline
+        - description
+        - accentColor
+        - previewImage
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        color:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        roomTypes:
+          type: array
+          items:
+            type: string
+          description: Room type ids this product is eligible for.
+        role:
+          type: string
+          description: Functional role in the room (e.g. sofa, bed, rug), used for de-cluttered selection.
+        group:
+          type: string
+          description: Broad category bucket (e.g. Lighting, Seating, Storage) used for high-level swap filtering, with role as the narrow filter.
+        imageUrl:
+          type: string
+          description: Relative URL path to the product image (served by the API).
+        buyUrl:
+          type: string
+          description: Link to purchase the product on IKEA.
+      required:
+        - id
+        - name
+        - category
+        - color
+        - price
+        - currency
+        - roomTypes
+        - role
+        - group
+        - imageUrl
+        - buyUrl
+    RedesignRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          description: Base64-encoded room photo (no data URI prefix).
+        styleId:
+          type: string
+        roomTypeId:
+          type: string
+        deviceId:
+          type: string
+          description: Anonymous device identifier the redesign is saved under.
+        isSubscribed:
+          type: boolean
+          description: Whether the device has an active Pro subscription (used for server-side rate limiting).
+        productIds:
+          type: array
+          items:
+            type: string
+          description: Optional subset of the room's auto-selected product ids to include. When omitted or empty, the server's default de-cluttered selection is used.
+      required:
+        - image
+        - styleId
+        - roomTypeId
+        - deviceId
+    RegenerateRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          description: Anonymous device identifier that owns the redesign.
+        isSubscribed:
+          type: boolean
+          description: Whether the device has an active Pro subscription (used for server-side rate limiting).
+        productIds:
+          type: array
+          items:
+            type: string
+          description: The curated set of product ids to ground the regenerated room in.
+      required:
+        - deviceId
+        - productIds
+    Redesign:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: integer
+          description: Creation time as epoch milliseconds.
+        deviceId:
+          type: string
+        styleId:
+          type: string
+        styleName:
+          type: string
+        roomTypeId:
+          type: string
+        roomName:
+          type: string
+        originalImage:
+          type: string
+          description: Base64-encoded original room photo.
+        redesignedImage:
+          type: string
+          description: Base64-encoded redesigned room image (PNG).
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+      required:
+        - id
+        - createdAt
+        - deviceId
+        - styleId
+        - styleName
+        - roomTypeId
+        - roomName
+        - originalImage
+        - redesignedImage
+        - products
