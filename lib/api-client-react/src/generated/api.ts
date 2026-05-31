@@ -25,7 +25,6 @@ import type {
   JobCreated,
   JobStatus,
   ListProductsParams,
-  ListRedesignsParams,
   Product,
   Redesign,
   RedesignRequest,
@@ -365,28 +364,21 @@ export function useListProducts<TData = Awaited<ReturnType<typeof listProducts>>
 
 
 
-export const getListRedesignsUrl = (params: ListRedesignsParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getListRedesignsUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/redesigns?${stringifiedParams}` : `/api/redesigns`
+  return `/api/redesigns`
 }
 
 /**
- * Returns the saved redesigns for the given device, newest first.
- * @summary List saved redesigns for a device
+ * Returns all saved redesigns, newest first.
+ * @summary List all saved redesigns
  */
-export const listRedesigns = async (params: ListRedesignsParams, options?: RequestInit): Promise<Redesign[]> => {
+export const listRedesigns = async ( options?: RequestInit): Promise<Redesign[]> => {
 
-  return customFetch<Redesign[]>(getListRedesignsUrl(params),
+  return customFetch<Redesign[]>(getListRedesignsUrl(),
   {
     ...options,
     method: 'GET'
@@ -399,23 +391,23 @@ export const listRedesigns = async (params: ListRedesignsParams, options?: Reque
 
 
 
-export const getListRedesignsQueryKey = (params?: ListRedesignsParams,) => {
+export const getListRedesignsQueryKey = () => {
     return [
-    `/api/redesigns`, ...(params ? [params] : [])
+    `/api/redesigns`
     ] as const;
     }
 
 
-export const getListRedesignsQueryOptions = <TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<ErrorResponse>>(params: ListRedesignsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListRedesignsQueryOptions = <TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListRedesignsQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getListRedesignsQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRedesigns>>> = ({ signal }) => listRedesigns(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRedesigns>>> = ({ signal }) => listRedesigns({ signal, ...requestOptions });
 
 
 
@@ -425,19 +417,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListRedesignsQueryResult = NonNullable<Awaited<ReturnType<typeof listRedesigns>>>
-export type ListRedesignsQueryError = ErrorType<ErrorResponse>
+export type ListRedesignsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List saved redesigns for a device
+ * @summary List all saved redesigns
  */
 
-export function useListRedesigns<TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<ErrorResponse>>(
- params: ListRedesignsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListRedesigns<TData = Awaited<ReturnType<typeof listRedesigns>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedesigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListRedesignsQueryOptions(params,options)
+  const queryOptions = getListRedesignsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

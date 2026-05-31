@@ -26,12 +26,8 @@ export function SavedRedesignsProvider({ children }: { children: ReactNode }) {
       .catch((e) => console.error("Failed to load device id", e));
   }, []);
 
-  const params = { deviceId: deviceId ?? "" };
-  const { data, isLoading } = useListRedesigns(params, {
-    query: {
-      enabled: !!deviceId,
-      queryKey: getListRedesignsQueryKey(params),
-    },
+  const { data, isLoading } = useListRedesigns({
+    query: { queryKey: getListRedesignsQueryKey() },
   });
 
   const redesigns = data ?? [];
@@ -42,7 +38,7 @@ export function SavedRedesignsProvider({ children }: { children: ReactNode }) {
       value={{
         redesigns,
         getRedesign,
-        isLoading: !deviceId || isLoading,
+        isLoading,
         deviceId,
       }}
     >

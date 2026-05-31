@@ -69,13 +69,9 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem)
 
 
 /**
- * Returns the saved redesigns for the given device, newest first.
- * @summary List saved redesigns for a device
+ * Returns all saved redesigns, newest first.
+ * @summary List all saved redesigns
  */
-export const ListRedesignsQueryParams = zod.object({
-  "deviceId": zod.coerce.string()
-})
-
 export const ListRedesignsResponseItem = zod.object({
   "id": zod.string(),
   "createdAt": zod.number().describe('Creation time as epoch milliseconds.'),
