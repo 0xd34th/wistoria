@@ -39,10 +39,11 @@ function toRedesign(row: RedesignRow) {
 }
 
 async function checkRateLimit(
-  deviceId: string,
-  isSubscribed: boolean,
+  _deviceId: string,
+  _isSubscribed: boolean,
 ): Promise<{ allowed: boolean; message: string }> {
-  if (isSubscribed) {
+  return { allowed: true, message: "" }; // TESTING: rate limit disabled
+  if (_isSubscribed) {
     const today = new Date().toISOString().split("T")[0];
     const [row] = await db
       .select({ total: count() })
