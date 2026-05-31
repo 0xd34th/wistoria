@@ -124,7 +124,7 @@ export default function RedesignResultScreen() {
   const openSwap = (index: number) => {
     setIsAdding(false);
     setSwapGroup(workingProducts[index]?.group ?? null);
-    setSwapRole(null);
+    setSwapRole(workingProducts[index]?.role ?? null);
     setSwapSearch("");
     setSwapIndex(index);
   };
@@ -832,7 +832,7 @@ const styles = StyleSheet.create({
   },
   regenButtonText: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   modalBackdrop: { flex: 1, justifyContent: "flex-end" },
-  modalSheet: { maxHeight: "85%", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
+  modalSheet: { maxHeight: "85%", flex: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
   modalHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 16 },
   modalTitle: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 4 },
   modalSubtitle: { fontSize: 13, fontFamily: "Inter_400Regular" },
