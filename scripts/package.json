@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "seedRevenueCat": "tsx ./src/seedRevenueCat.ts",
     "addDimensions": "tsx ./src/addDimensions.ts",
+    "fetchIkea": "tsx ./src/fetchIkea.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
