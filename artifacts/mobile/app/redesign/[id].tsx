@@ -398,6 +398,13 @@ export default function RedesignResultScreen() {
               one for an alternative, then regenerate.
             </Text>
 
+            <View style={[styles.scaleNotice, { backgroundColor: colors.muted, borderRadius: colors.radius }]}>
+              <Feather name="alert-circle" size={13} color={colors.mutedForeground} />
+              <Text style={[styles.scaleNoticeText, { color: colors.mutedForeground }]}>
+                Items may not be rendered exactly to scale. Always verify measurements before purchasing.
+              </Text>
+            </View>
+
             {workingProducts.length === 0 && (
               <Text style={[styles.emptyHint, { color: colors.destructive }]}>
                 Add at least one piece back to regenerate your room.
@@ -784,6 +791,8 @@ const styles = StyleSheet.create({
   divider: { height: 1, marginVertical: 24 },
   sectionTitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginBottom: 8, letterSpacing: -0.4 },
   sectionSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 20 },
+  scaleNotice: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 12, marginBottom: 20 },
+  scaleNoticeText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   emptyHint: { fontSize: 14, fontFamily: "Inter_500Medium", marginBottom: 16 },
   addPieceButton: {
     flexDirection: "row",
