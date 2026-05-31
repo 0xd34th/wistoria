@@ -77,6 +77,68 @@ async function checkRateLimit(
   return { allowed: true, message: "" };
 }
 
+const PROXY_ALLOW_LIST = ["www.ikea.com", "ikea.com"];
+const PROXY_CACHE_SECONDS = 60 * 60 * 24; // 24 hours
+
+router.get("/proxy/image", async (req, res) => {
+  const raw = typeof req.query["url"] === "string" ? req.query["url"] : "";
+  if (!raw) {
+    res.status(400).json({ message: "url query param is required" });
+    return;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    res.status(400).json({ message: "Invalid URL" });
+    return;
+  }
+
+  if (parsed.protocol !== "https:") {
+    res.status(400).json({ message: "Only HTTPS URLs are allowed" });
+    return;
+  }
+
+  if (!PROXY_ALLOW_LIST.some((h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`))) {
+    res.status(403).json({ message: "Domain not allowed" });
+    return;
+  }
+
+  try {
+    const upstream = await fetch(parsed.toString(), {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Referer: "https://www.ikea.com/",
+        Accept: "image/webp,image/apng,image/*,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!upstream.ok) {
+      req.log.warn(
+        { url: parsed.toString(), status: upstream.status },
+        "Upstream proxy image failed",
+      );
+      res.status(upstream.status).json({ message: "Upstream image unavailable" });
+      return;
+    }
+
+    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", `public, max-age=${PROXY_CACHE_SECONDS}`);
+    res.setHeader("Content-Length", buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    req.log.warn({ err }, "Image proxy fetch error");
+    res.status(502).json({ message: "Could not fetch image" });
+  }
+});
+
 router.get("/styles", (_req, res) => {
   res.json(listStyles());
 });
