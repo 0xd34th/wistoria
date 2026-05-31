@@ -193,20 +193,10 @@ router.get("/products", async (req, res) => {
 });
 
 router.get("/redesigns", async (req, res) => {
-  const deviceId =
-    typeof req.query["deviceId"] === "string"
-      ? req.query["deviceId"].trim()
-      : "";
-  if (!deviceId) {
-    res.status(400).json({ message: "A device id is required." });
-    return;
-  }
-
   try {
     const rows = await db
       .select()
       .from(redesignsTable)
-      .where(eq(redesignsTable.deviceId, deviceId))
       .orderBy(desc(redesignsTable.createdAt));
     res.json(rows.map(toRedesign));
   } catch (err) {
