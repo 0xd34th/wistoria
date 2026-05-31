@@ -676,6 +676,7 @@ export default function RedesignResultScreen() {
                 data={filteredAlternatives}
                 keyExtractor={(item) => item.id}
                 keyboardShouldPersistTaps="handled"
+                style={{ flex: 1 }}
                 renderItem={({ item: product }) => {
                   const isInCollection = workingProducts.some((p) => p.id === product.id);
                   return (
