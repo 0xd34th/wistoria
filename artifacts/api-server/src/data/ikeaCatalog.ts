@@ -227,6 +227,21 @@ export async function getProductsForStyle(_styleId?: string): Promise<Product[]>
   return reclassifyAll(rows);
 }
 
+// Categories that are component pieces (frames, covers, extensions) whose
+// standalone product photos look like flat cushions or mattresses when placed
+// in a room scene by the AI. Exclude them from room selections.
+const COMPONENT_CATEGORY_PATTERNS = [
+  "frame",          // sofa/sectional frames — individual modular sections
+  "cushion cover",
+  "cover for",      // covers for ottomans, sleeper sofas, etc.
+  "height extension",
+];
+
+function isComponentCategory(category: string): boolean {
+  const lower = category.toLowerCase();
+  return COMPONENT_CATEGORY_PATTERNS.some((p) => lower.includes(p));
+}
+
 export async function getEligibleProductsForRoom(
   roomTypeId: string,
 ): Promise<Product[]> {
@@ -240,7 +255,7 @@ export async function getEligibleProductsForRoom(
       ),
     )
     .orderBy(ikeaProductsTable.id);
-  return reclassifyAll(rows);
+  return reclassifyAll(rows).filter((p) => !isComponentCategory(p.category));
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
