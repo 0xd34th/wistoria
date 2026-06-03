@@ -571,17 +571,12 @@ async function fetchTerm(term: string): Promise<Product[]> {
       const typeName = String(p.typeName ?? "");
       const colors = (p.colors as { hex?: string; name?: string }[] | undefined) ?? [];
       const colorName = colors[0]?.name ?? "";
-      const price =
-        Number(
-          (p.price as Record<string, unknown>)?.numeral ?? 0,
-        ) || 0;
+      // US API uses salesPrice.numeral (same as India — price.numeral no longer exists)
+      const salesPrice = p.salesPrice as Record<string, unknown> | undefined;
+      const price = Number(salesPrice?.numeral ?? 0) || 0;
 
-      const images = (p.images as { url?: string; quality?: string }[] | undefined) ?? [];
-      const mainImg =
-        images.find((img) => img.quality === "S5")?.url ??
-        images[0]?.url ??
-        "";
-      const cleanImg = mainImg ? `https://www.ikea.com${mainImg}` : "";
+      // US API: mainImageUrl is already a full absolute URL (no prefix needed)
+      const imageUrl = String(p.mainImageUrl ?? "");
 
       const { role, group, roomTypes } = classifyProduct(typeName);
 
@@ -595,8 +590,8 @@ async function fetchTerm(term: string): Promise<Product[]> {
         roomTypes,
         role,
         group,
-        imageUrl: cleanImg,
-        buyUrl: `https://www.ikea.com/us/en/search/?q=${encodeURIComponent(name + " " + colorName)}`,
+        imageUrl,
+        buyUrl: String(p.pipUrl ?? `https://www.ikea.com/us/en/search/?q=${encodeURIComponent(name)}`),
         widthCm: null,
         depthCm: null,
         heightCm: null,
@@ -616,6 +611,7 @@ async function run() {
 
   // Process in batches of 8 concurrent requests
   const CONCURRENCY = 8;
+  const CHECKPOINT_EVERY = 30;
   for (let i = 0; i < SEARCH_TERMS.length; i += CONCURRENCY) {
     const batch = SEARCH_TERMS.slice(i, i + CONCURRENCY);
     const results = await Promise.all(batch.map(fetchTerm));
@@ -627,6 +623,10 @@ async function run() {
       process.stdout.write(
         `\r  ${completed}/${SEARCH_TERMS.length} terms done — ${seen.size} unique products`,
       );
+    }
+    // Checkpoint: save partial results so progress survives interruption
+    if (completed % CHECKPOINT_EVERY === 0) {
+      writeFileSync(OUT_PATH, JSON.stringify(Array.from(seen.values()), null, 2));
     }
     // Small pause between batches to be polite to the API
     if (i + CONCURRENCY < SEARCH_TERMS.length) {
