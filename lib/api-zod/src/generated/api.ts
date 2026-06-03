@@ -49,11 +49,13 @@ export const ListRoomsResponse = zod.array(ListRoomsResponseItem)
  * @summary List shoppable IKEA products
  */
 export const ListProductsQueryParams = zod.object({
-  "roomTypeId": zod.coerce.string().optional()
+  "roomTypeId": zod.coerce.string().optional(),
+  "market": zod.coerce.string().optional().describe('Market\/country code (US or IN). Defaults to US.')
 })
 
 export const ListProductsResponseItem = zod.object({
   "id": zod.string(),
+  "market": zod.string().describe('Market\/country code this product belongs to (US or IN).'),
   "name": zod.string(),
   "category": zod.string(),
   "color": zod.string(),
@@ -88,6 +90,7 @@ export const ListRedesignsResponseItem = zod.object({
   "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
   "products": zod.array(zod.object({
   "id": zod.string(),
+  "market": zod.string().describe('Market\/country code this product belongs to (US or IN).'),
   "name": zod.string(),
   "category": zod.string(),
   "color": zod.string(),
@@ -113,6 +116,7 @@ export const RegenerateRedesignParams = zod.object({
 
 export const RegenerateRedesignBody = zod.object({
   "deviceId": zod.string().describe('Anonymous device identifier that owns the redesign.'),
+  "market": zod.string().optional().describe('Market\/country code for product lookup (US or IN). Defaults to US.'),
   "isSubscribed": zod.boolean().optional().describe('Whether the device has an active Pro subscription (used for server-side rate limiting).'),
   "productIds": zod.array(zod.string()).describe('The curated set of product ids to ground the regenerated room in.')
 })
@@ -127,6 +131,7 @@ export const CreateRedesignBody = zod.object({
   "styleId": zod.string(),
   "roomTypeId": zod.string(),
   "deviceId": zod.string().describe('Anonymous device identifier the redesign is saved under.'),
+  "market": zod.string().optional().describe('Market\/country code for product selection (US or IN). Defaults to US.'),
   "isSubscribed": zod.boolean().optional().describe('Whether the device has an active Pro subscription (used for server-side rate limiting).'),
   "productIds": zod.array(zod.string()).optional().describe('Optional subset of the room\'s auto-selected product ids to include. When omitted or empty, the server\'s default de-cluttered selection is used.')
 })
@@ -154,6 +159,7 @@ export const GetJobResponse = zod.object({
   "redesignedImage": zod.string().describe('Base64-encoded redesigned room image (PNG).'),
   "products": zod.array(zod.object({
   "id": zod.string(),
+  "market": zod.string().describe('Market\/country code this product belongs to (US or IN).'),
   "name": zod.string(),
   "category": zod.string(),
   "color": zod.string(),

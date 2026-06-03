@@ -68,6 +68,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: market
+          in: query
+          required: false
+          description: Market/country code (US or IN). Defaults to US.
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -254,6 +260,9 @@ components:
       properties:
         id:
           type: string
+        market:
+          type: string
+          description: Market/country code this product belongs to (US or IN).
         name:
           type: string
         category:
@@ -283,6 +292,7 @@ components:
           description: Link to purchase the product on IKEA.
       required:
         - id
+        - market
         - name
         - category
         - color
@@ -306,6 +316,9 @@ components:
         deviceId:
           type: string
           description: Anonymous device identifier the redesign is saved under.
+        market:
+          type: string
+          description: Market/country code for product selection (US or IN). Defaults to US.
         isSubscribed:
           type: boolean
           description: Whether the device has an active Pro subscription (used for server-side rate limiting).
@@ -325,6 +338,9 @@ components:
         deviceId:
           type: string
           description: Anonymous device identifier that owns the redesign.
+        market:
+          type: string
+          description: Market/country code for product lookup (US or IN). Defaults to US.
         isSubscribed:
           type: boolean
           description: Whether the device has an active Pro subscription (used for server-side rate limiting).

@@ -31,6 +31,8 @@ export interface StylePreset {
 
 export interface Product {
   id: string;
+  /** Market/country code this product belongs to (US or IN). */
+  market: string;
   name: string;
   category: string;
   color: string;
@@ -55,6 +57,8 @@ export interface RedesignRequest {
   roomTypeId: string;
   /** Anonymous device identifier the redesign is saved under. */
   deviceId: string;
+  /** Market/country code for product selection (US or IN). Defaults to US. */
+  market?: string;
   /** Whether the device has an active Pro subscription (used for server-side rate limiting). */
   isSubscribed?: boolean;
   /** Optional subset of the room's auto-selected product ids to include. When omitted or empty, the server's default de-cluttered selection is used. */
@@ -64,6 +68,8 @@ export interface RedesignRequest {
 export interface RegenerateRequest {
   /** Anonymous device identifier that owns the redesign. */
   deviceId: string;
+  /** Market/country code for product lookup (US or IN). Defaults to US. */
+  market?: string;
   /** Whether the device has an active Pro subscription (used for server-side rate limiting). */
   isSubscribed?: boolean;
   /** The curated set of product ids to ground the regenerated room in. */
@@ -114,6 +120,10 @@ export interface JobStatus {
 
 export type ListProductsParams = {
 roomTypeId?: string;
+/**
+ * Market/country code (US or IN). Defaults to US.
+ */
+market?: string;
 };
 
 export type ListRedesignsParams = {

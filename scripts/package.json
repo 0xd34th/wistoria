@@ -8,6 +8,7 @@
     "seedRevenueCat": "tsx ./src/seedRevenueCat.ts",
     "addDimensions": "tsx ./src/addDimensions.ts",
     "fetchIkea": "tsx ./src/fetchIkea.ts",
+    "fetchIkeaIndia": "tsx ./src/fetchIkeaIndia.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

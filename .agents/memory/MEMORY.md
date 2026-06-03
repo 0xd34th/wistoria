@@ -1,1 +1,3 @@
 - [IKEA seed integrity](ikea-seed-integrity.md) — ikeaSeed.json must have non-empty imageUrls or products silently fail redesign with "Invalid URL" in production.
+- [IKEA India API parsing](ikea-india-api.md) — India API has different product field names from US; parser must use salesPrice.numeral, mainImageUrl (full URL), pipUrl.
+- [India fetch checkpoint saves](ikea-india-fetch.md) — fetch script must write intermediate checkpoints or the single end-write gets lost if the process is interrupted.

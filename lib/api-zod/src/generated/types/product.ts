@@ -8,6 +8,8 @@
 
 export interface Product {
   id: string;
+  /** Market/country code this product belongs to (US or IN). */
+  market: string;
   name: string;
   category: string;
   color: string;

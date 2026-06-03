@@ -32,6 +32,7 @@ import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { ikeaImageUrl } from "@/lib/utils";
 import { useJobPoller } from "@/hooks/useJobPoller";
+import { getMarket } from "@/lib/market";
 import { ZoomableImageModal } from "@/components/ZoomableImageModal";
 import {
   useListProducts,
@@ -156,7 +157,8 @@ export default function RedesignResultScreen() {
   const isRegenerating = isRegenMutating || isRegenPolling;
 
   const roomTypeId = redesign?.roomTypeId ?? "";
-  const productsParams = { roomTypeId };
+  const market = getMarket();
+  const productsParams = { roomTypeId, market };
   const { data: eligibleProducts, isLoading: isLoadingAlternatives } = useListProducts(productsParams, {
     query: { enabled: !!roomTypeId, queryKey: getListProductsQueryKey(productsParams) },
   });
@@ -338,7 +340,7 @@ export default function RedesignResultScreen() {
     try {
       const { jobId } = await regenerate({
         id,
-        data: { deviceId, isSubscribed, productIds: workingProducts.map((p) => p.id) },
+        data: { deviceId, market: getMarket(), isSubscribed, productIds: workingProducts.map((p) => p.id) },
       });
       await startRegenJob(jobId);
     } catch (e) {
