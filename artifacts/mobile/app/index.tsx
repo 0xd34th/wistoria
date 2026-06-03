@@ -11,10 +11,20 @@ import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { useMarket, type Market } from "@/lib/market";
 
-const MARKET_OPTIONS: { value: Market; flag: string; label: string; sub: string }[] = [
-  { value: "US", flag: "🇺🇸", label: "United States", sub: "IKEA US — prices in $" },
-  { value: "IN", flag: "🇮🇳", label: "India", sub: "IKEA India — prices in ₹" },
+const MARKET_OPTIONS: { value: Market; flagCode: string; label: string; sub: string }[] = [
+  { value: "US", flagCode: "us", label: "United States", sub: "IKEA US — prices in $" },
+  { value: "IN", flagCode: "in", label: "India", sub: "IKEA India — prices in ₹" },
 ];
+
+function FlagImage({ code, size = 28 }: { code: string; size?: number }) {
+  return (
+    <Image
+      source={{ uri: `https://flagcdn.com/w80/${code}.png` }}
+      style={{ width: size * 1.33, height: size, borderRadius: 3 }}
+      resizeMode="cover"
+    />
+  );
+}
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -68,7 +78,7 @@ export default function HomeScreen() {
                       setShowMarketPicker(false);
                     }}
                   >
-                    <Text style={styles.pickerFlag}>{opt.flag}</Text>
+                    <FlagImage code={opt.flagCode} size={30} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.pickerLabel, { color: colors.foreground }]}>{opt.label}</Text>
                       <Text style={[styles.pickerRowSub, { color: colors.mutedForeground }]}>{opt.sub}</Text>
@@ -105,7 +115,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => setShowMarketPicker(true)}
           >
-            <Text style={styles.flagEmoji}>{currentMarketOption.flag}</Text>
+            <FlagImage code={currentMarketOption.flagCode} size={22} />
           </Pressable>
           <Pressable
             style={({ pressed }) => [
