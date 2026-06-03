@@ -88,7 +88,17 @@ function ProductThumb({
   );
 }
 
-const formatPrice = (price: number) => `$${price.toFixed(2)}`;
+const formatPrice = (price: number, currency = "USD") => {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: currency === "INR" ? 0 : 2,
+    }).format(price);
+  } catch {
+    return `${currency} ${price.toFixed(2)}`;
+  }
+};
 
 const humanizeRole = (role: string) =>
   role
@@ -526,7 +536,7 @@ export default function RedesignResultScreen() {
                           {product.name}
                         </Text>
                         <Text style={[styles.productPrice, { color: colors.foreground }]}>
-                          {formatPrice(product.price)}
+                          {formatPrice(product.price, product.currency ?? "USD")}
                         </Text>
                       </View>
                       <Text style={[styles.productCategory, { color: colors.mutedForeground }]}>
@@ -780,7 +790,7 @@ export default function RedesignResultScreen() {
                           {product.category} • {product.color}
                         </Text>
                         <Text style={[styles.altPrice, { color: colors.foreground }]}>
-                          {formatPrice(product.price)}
+                          {formatPrice(product.price, product.currency ?? "USD")}
                         </Text>
                       </View>
                       <Pressable
