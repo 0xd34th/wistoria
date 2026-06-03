@@ -257,10 +257,11 @@ export default function RedesignResultScreen() {
   }
 
   const openBuyLink = async (product: Product) => {
-    const q = encodeURIComponent(`${product.name} ${product.color}`);
-    const searchUrl = `https://www.ikea.com/us/en/search/products/?q=${q}`;
+    const url = product.buyUrl?.trim()
+      ? product.buyUrl
+      : `https://www.ikea.com/us/en/search/products/?q=${encodeURIComponent(`${product.name} ${product.color}`)}`;
     try {
-      await WebBrowser.openBrowserAsync(searchUrl);
+      await WebBrowser.openBrowserAsync(url);
     } catch (e) {
       console.error("Failed to open link", e);
     }
