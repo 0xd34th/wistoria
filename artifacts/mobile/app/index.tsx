@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Image } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, Image, Modal, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
@@ -9,6 +9,12 @@ import { useColors } from "@/hooks/useColors";
 import { useSavedRedesigns } from "@/hooks/useSavedRedesigns";
 import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
+import { useMarket, type Market } from "@/lib/market";
+
+const MARKET_OPTIONS: { value: Market; flag: string; label: string; sub: string }[] = [
+  { value: "US", flag: "🇺🇸", label: "United States", sub: "IKEA US — prices in $" },
+  { value: "IN", flag: "🇮🇳", label: "India", sub: "IKEA India — prices in ₹" },
+];
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -17,13 +23,90 @@ export default function HomeScreen() {
   const { redesigns, isLoading } = useSavedRedesigns();
   const { isSubscribed } = useSubscription();
   const [showPaywall, setShowPaywall] = useState(false);
+  const { market, isManual, setMarket, resetToAuto } = useMarket();
+  const [showMarketPicker, setShowMarketPicker] = useState(false);
+
+  const currentMarketOption = MARKET_OPTIONS.find((o) => o.value === market) ?? MARKET_OPTIONS[0]!;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Paywall visible={showPaywall} onClose={() => setShowPaywall(false)} />
+
+      {/* Market picker modal */}
+      <Modal
+        visible={showMarketPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMarketPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMarketPicker(false)}
+        >
+          <TouchableOpacity activeOpacity={1}>
+            <View style={[styles.pickerSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.pickerTitle, { color: colors.foreground }]}>Shop region</Text>
+              <Text style={[styles.pickerSub, { color: colors.mutedForeground }]}>
+                Sets which IKEA catalog and prices to show.
+              </Text>
+              {MARKET_OPTIONS.map((opt) => {
+                const selected = market === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={({ pressed }) => [
+                      styles.pickerRow,
+                      {
+                        backgroundColor: selected ? colors.secondary : colors.background,
+                        borderColor: selected ? colors.primary : colors.border,
+                      },
+                      pressed && { opacity: 0.8 },
+                    ]}
+                    onPress={() => {
+                      setMarket(opt.value);
+                      setShowMarketPicker(false);
+                    }}
+                  >
+                    <Text style={styles.pickerFlag}>{opt.flag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickerLabel, { color: colors.foreground }]}>{opt.label}</Text>
+                      <Text style={[styles.pickerRowSub, { color: colors.mutedForeground }]}>{opt.sub}</Text>
+                    </View>
+                    {selected && <Feather name="check" size={18} color={colors.primary} />}
+                  </Pressable>
+                );
+              })}
+              {isManual && (
+                <Pressable
+                  style={({ pressed }) => [styles.autoLink, pressed && { opacity: 0.6 }]}
+                  onPress={() => { resetToAuto(); setShowMarketPicker(false); }}
+                >
+                  <Feather name="refresh-ccw" size={13} color={colors.mutedForeground} />
+                  <Text style={[styles.autoLinkText, { color: colors.mutedForeground }]}>
+                    Auto-detect from device
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 16 }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>Wistoria</Text>
         <View style={styles.headerActions}>
+          {/* Market flag toggle */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.flagButton,
+              { backgroundColor: colors.muted },
+              pressed && { opacity: 0.7 },
+            ]}
+            onPress={() => setShowMarketPicker(true)}
+          >
+            <Text style={styles.flagEmoji}>{currentMarketOption.flag}</Text>
+          </Pressable>
           <Pressable
             style={({ pressed }) => [
               styles.proButton,
@@ -149,6 +232,73 @@ const styles = StyleSheet.create({
   proButtonText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  flagButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flagEmoji: {
+    fontSize: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  pickerSheet: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    width: 320,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 4,
+  },
+  pickerSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  pickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 10,
+  },
+  pickerFlag: {
+    fontSize: 26,
+  },
+  pickerLabel: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  pickerRowSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  autoLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    alignSelf: "center",
+    paddingVertical: 6,
+  },
+  autoLinkText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
   addButton: {
     width: 48,

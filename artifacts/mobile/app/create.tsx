@@ -15,7 +15,7 @@ import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { getAssetUrl } from "@/lib/utils";
 import { useJobPoller } from "@/hooks/useJobPoller";
-import { getMarket, isIndiaMarket } from "@/lib/market";
+import { useMarket } from "@/lib/market";
 import { IkeaIndiaStoreBanner } from "@/components/IkeaIndiaStoreBanner";
 import {
   useListStyles,
@@ -44,6 +44,7 @@ export default function CreateScreen() {
   const { isSubscribed, isCustomerInfoLoading } = useSubscription();
   const { hasFreeRedesign, incrementFreeUsed, isLoaded: isFreeUsageLoaded } = useFreeUsage();
   const { hasProRedesignToday, incrementProDaily, isLoaded: isDailyLoaded } = useDailyUsage();
+  const { market } = useMarket();
 
   const isAccessReady = !isCustomerInfoLoading && isFreeUsageLoaded && isDailyLoaded;
 
@@ -139,7 +140,7 @@ export default function CreateScreen() {
           styleId: selectedStyleId,
           roomTypeId: selectedRoomTypeId,
           deviceId,
-          market: getMarket(),
+          market,
           isSubscribed,
         },
       });
@@ -233,7 +234,7 @@ export default function CreateScreen() {
           )}
         </Animated.View>
 
-        {isIndiaMarket() && (
+        {market === "IN" && (
           <Animated.View entering={FadeInDown.delay(140).springify()} style={{ marginTop: 24 }}>
             <IkeaIndiaStoreBanner />
           </Animated.View>
