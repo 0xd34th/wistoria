@@ -3,6 +3,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -11,7 +12,8 @@ import { z } from "zod/v4";
 export const ikeaProductsTable = pgTable(
   "ikea_products",
   {
-    id: text("id").primaryKey(),
+    id: text("id").notNull(),
+    market: text("market").notNull().default("US"),
     name: text("name").notNull(),
     category: text("category").notNull(),
     color: text("color").notNull(),
@@ -27,8 +29,10 @@ export const ikeaProductsTable = pgTable(
     heightCm: integer("height_cm"),
   },
   (table) => [
+    primaryKey({ columns: [table.id, table.market] }),
     index("ikea_products_role_idx").on(table.role),
     index("ikea_products_group_idx").on(table.group),
+    index("ikea_products_market_idx").on(table.market),
   ],
 );
 

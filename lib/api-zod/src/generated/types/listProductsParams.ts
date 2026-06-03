@@ -8,4 +8,8 @@
 
 export type ListProductsParams = {
 roomTypeId?: string;
+/**
+ * Market/country code (US or IN). Defaults to US.
+ */
+market?: string;
 };

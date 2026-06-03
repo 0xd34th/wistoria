@@ -2,6 +2,7 @@ import { db, ikeaProductsTable } from "@workspace/db";
 import { and, arrayContains, eq, inArray, ne, sql } from "drizzle-orm";
 
 import ikeaSeed from "./ikeaSeed.json";
+import ikeaSeedIndia from "./ikeaSeedIndia.json";
 
 export interface StylePreset {
   id: string;
@@ -21,6 +22,7 @@ export interface RoomType {
 
 export interface Product {
   id: string;
+  market: string;
   name: string;
   category: string;
   color: string;
@@ -111,7 +113,13 @@ const ROOM_DATA: RoomType[] = [
   },
 ];
 
-export const SEED_PRODUCTS: Product[] = ikeaSeed as Product[];
+const US_PRODUCTS: Product[] = (ikeaSeed as Omit<Product, "market">[]).map(
+  (p) => ({ ...p, market: "US" }),
+);
+const IN_PRODUCTS: Product[] = (ikeaSeedIndia as Omit<Product, "market">[]).map(
+  (p) => ({ ...p, market: "IN" }),
+);
+export const SEED_PRODUCTS: Product[] = [...US_PRODUCTS, ...IN_PRODUCTS];
 
 const ROOM_ROLE_PRIORITY: Record<string, string[]> = {
   "living-room": [
@@ -192,7 +200,7 @@ export async function seedIkeaProducts(): Promise<void> {
       .insert(ikeaProductsTable)
       .values(chunk)
       .onConflictDoUpdate({
-        target: ikeaProductsTable.id,
+        target: [ikeaProductsTable.id, ikeaProductsTable.market],
         set: {
           name: sql`excluded.name`,
           category: sql`excluded.category`,
@@ -219,10 +227,14 @@ export async function seedIkeaProducts(): Promise<void> {
   );
 }
 
-export async function getProductsForStyle(_styleId?: string): Promise<Product[]> {
+export async function getProductsForStyle(
+  _styleId?: string,
+  market = "US",
+): Promise<Product[]> {
   const rows = await db
     .select()
     .from(ikeaProductsTable)
+    .where(eq(ikeaProductsTable.market, market))
     .orderBy(ikeaProductsTable.id);
   return reclassifyAll(rows);
 }
@@ -244,6 +256,7 @@ function isComponentCategory(category: string): boolean {
 
 export async function getEligibleProductsForRoom(
   roomTypeId: string,
+  market = "US",
 ): Promise<Product[]> {
   const rows = await db
     .select()
@@ -252,18 +265,27 @@ export async function getEligibleProductsForRoom(
       and(
         arrayContains(ikeaProductsTable.roomTypes, [roomTypeId]),
         ne(ikeaProductsTable.role, "other"),
+        eq(ikeaProductsTable.market, market),
       ),
     )
     .orderBy(ikeaProductsTable.id);
   return reclassifyAll(rows).filter((p) => !isComponentCategory(p.category));
 }
 
-export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+export async function getProductsByIds(
+  ids: string[],
+  market = "US",
+): Promise<Product[]> {
   if (ids.length === 0) return [];
   const rows = await db
     .select()
     .from(ikeaProductsTable)
-    .where(inArray(ikeaProductsTable.id, ids));
+    .where(
+      and(
+        inArray(ikeaProductsTable.id, ids),
+        eq(ikeaProductsTable.market, market),
+      ),
+    );
   const byId = new Map(reclassifyAll(rows).map((p) => [p.id, p]));
   const result: Product[] = [];
   for (const id of ids) {
@@ -314,8 +336,9 @@ export function selectDecluttered(
 export async function getProductsForRoom(
   roomTypeId: string,
   selectedProductIds?: string[],
+  market = "US",
 ): Promise<Product[]> {
-  const eligible = await getEligibleProductsForRoom(roomTypeId);
+  const eligible = await getEligibleProductsForRoom(roomTypeId, market);
   const randomize = !selectedProductIds || selectedProductIds.length === 0;
   return selectDecluttered(eligible, roomTypeId, selectedProductIds, randomize);
 }

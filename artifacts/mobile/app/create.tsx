@@ -15,6 +15,8 @@ import { useSubscription } from "@/lib/revenuecat";
 import { Paywall } from "@/components/Paywall";
 import { getAssetUrl } from "@/lib/utils";
 import { useJobPoller } from "@/hooks/useJobPoller";
+import { getMarket, isIndiaMarket } from "@/lib/market";
+import { IkeaIndiaStoreBanner } from "@/components/IkeaIndiaStoreBanner";
 import {
   useListStyles,
   useListRooms,
@@ -137,6 +139,7 @@ export default function CreateScreen() {
           styleId: selectedStyleId,
           roomTypeId: selectedRoomTypeId,
           deviceId,
+          market: getMarket(),
           isSubscribed,
         },
       });
@@ -229,6 +232,12 @@ export default function CreateScreen() {
             </View>
           )}
         </Animated.View>
+
+        {isIndiaMarket() && (
+          <Animated.View entering={FadeInDown.delay(140).springify()} style={{ marginTop: 24 }}>
+            <IkeaIndiaStoreBanner />
+          </Animated.View>
+        )}
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 40 }]}>The Space</Text>

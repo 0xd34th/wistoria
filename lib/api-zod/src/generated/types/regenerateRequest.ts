@@ -9,6 +9,8 @@
 export interface RegenerateRequest {
   /** Anonymous device identifier that owns the redesign. */
   deviceId: string;
+  /** Market/country code for product lookup (US or IN). Defaults to US. */
+  market?: string;
   /** Whether the device has an active Pro subscription (used for server-side rate limiting). */
   isSubscribed?: boolean;
   /** The curated set of product ids to ground the regenerated room in. */

@@ -83,7 +83,7 @@ async function checkRateLimit(
       .from(redesignsTable)
       .where(
         and(
-          eq(redesignsTable.deviceId, deviceId),
+          eq(redesignsTable.deviceId, _deviceId),
           sql`DATE(${redesignsTable.createdAt} AT TIME ZONE 'UTC') = ${today}::date`,
         ),
       );
@@ -98,7 +98,7 @@ async function checkRateLimit(
     const [row] = await db
       .select({ total: count() })
       .from(redesignsTable)
-      .where(eq(redesignsTable.deviceId, deviceId));
+      .where(eq(redesignsTable.deviceId, _deviceId));
     const totalCount = row?.total ?? 0;
     if (totalCount >= FREE_REDESIGN_LIMIT) {
       return {
@@ -186,9 +186,13 @@ router.get("/products", async (req, res) => {
     typeof req.query["roomTypeId"] === "string"
       ? req.query["roomTypeId"]
       : undefined;
+  const market =
+    typeof req.query["market"] === "string"
+      ? req.query["market"].toUpperCase()
+      : "US";
   const products = roomTypeId
-    ? await getEligibleProductsForRoom(roomTypeId)
-    : await getProductsForStyle();
+    ? await getEligibleProductsForRoom(roomTypeId, market)
+    : await getProductsForStyle(undefined, market);
   res.json(products);
 });
 
@@ -459,11 +463,14 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
   const id = req.params.id;
   const body = req.body as {
     deviceId?: unknown;
+    market?: unknown;
     isSubscribed?: unknown;
     productIds?: unknown;
   };
   const deviceId =
     typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+  const market =
+    typeof body.market === "string" ? body.market.toUpperCase() : "US";
   const isSubscribed = body.isSubscribed === true;
   const productIds = Array.isArray(body.productIds)
     ? body.productIds.filter((pid): pid is string => typeof pid === "string")
@@ -513,7 +520,7 @@ router.post("/redesigns/:id/regenerate", async (req, res) => {
     return;
   }
 
-  const products = await getProductsByIds(productIds);
+  const products = await getProductsByIds(productIds, market);
   if (products.length === 0) {
     res.status(400).json({ message: "None of the chosen pieces are available." });
     return;
@@ -624,6 +631,7 @@ router.post("/redesign", async (req, res) => {
     styleId?: unknown;
     roomTypeId?: unknown;
     deviceId?: unknown;
+    market?: unknown;
     isSubscribed?: unknown;
     productIds?: unknown;
   };
@@ -633,6 +641,8 @@ router.post("/redesign", async (req, res) => {
     typeof body.roomTypeId === "string" ? body.roomTypeId : "";
   const deviceId =
     typeof body.deviceId === "string" ? body.deviceId.trim() : "";
+  const market =
+    typeof body.market === "string" ? body.market.toUpperCase() : "US";
   const isSubscribed = body.isSubscribed === true;
   const selectedProductIds = Array.isArray(body.productIds)
     ? body.productIds.filter((id): id is string => typeof id === "string")
@@ -672,7 +682,7 @@ router.post("/redesign", async (req, res) => {
     return;
   }
 
-  const products = await getProductsForRoom(roomTypeId, selectedProductIds);
+  const products = await getProductsForRoom(roomTypeId, selectedProductIds, market);
 
   // All validation passed — start background job and return immediately.
   const jobId = crypto.randomUUID();
